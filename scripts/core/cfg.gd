@@ -8,6 +8,12 @@ const MAX_PLAYERS := 12
 
 const CELL := 2.0 # metres per map grid cell
 
+# --- Physics layers (bit values) ----------------------------------------------
+const L_WORLD := 1
+const L_DYNAMIC := 2
+const L_SOLDIER := 4
+const L_DEBRIS := 8
+
 # --- Teams -------------------------------------------------------------
 const ATK := 0
 const DEF := 1
