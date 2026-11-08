@@ -36,7 +36,7 @@ cover shooter (snap-to-cover, blind fire, peeking, breaching charges), with bots
 | `scripts/net` | Server query beacon, master server, server browser list |
 | `scripts/ui` | HUD, menus, buy menu, scoreboard, server browser |
 | `maps/*.json` | Map layouts (grid based, see `tools/map_preview.py`) |
-| `assets/` | CC0 assets from Poly Haven (`tools/fetch_assets.py` re-downloads them) |
+| `assets/` | CC0 assets: Poly Haven textures/skies/props (`tools/fetch_assets.py`), recorded gun sounds (`tools/build_sounds.py`) |
 | `docs/ARCHITECTURE.md` | Module contracts |
 
 ## Building from source
@@ -60,5 +60,9 @@ Dev/test entry points (pass after `--`):
 
 ## Credits
 
-Textures, HDRI skies and props by [Poly Haven](https://polyhaven.com) (CC0). Engine: Godot (MIT).
-All other code, sounds (synthesized at runtime) and procedural models are original to this project.
+Textures, HDRI skies and props by [Poly Haven](https://polyhaven.com) (CC0).
+Gunshot recordings: [The Free Firearm Sound Library](https://opengameart.org/content/the-free-firearm-sound-library) (CC0);
+reload sounds from OpenGameArt CC0 packs ("Gun reload sounds", "Handgun reload sound effect",
+"Shotgun reload sound effects", "2 Gun Reloads"). `tools/build_sounds.py` rebuilds `assets/sounds`.
+Engine: Godot (MIT). All other code, the remaining sounds (synthesized at runtime) and the
+procedural models are original to this project.

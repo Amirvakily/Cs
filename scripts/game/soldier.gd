@@ -437,14 +437,17 @@ func current_spread() -> float:
 		sp = float(w["spread_scoped"]) if scope_level > 0 else float(w["spread"])
 	var hs := Vector2(velocity.x, velocity.z).length()
 	var mv := clampf(hs / maxf(float(w.get("speed", 6.0)), 1.0), 0.0, 1.0)
-	sp += float(w["spread_move"]) * mv * mv
+	# First shot from a standstill is pin-point (tap-firing rewards discipline).
+	if _shots == 0 and mv < 0.25 and cls != "shotgun":
+		sp *= 0.4
+	sp += float(w["spread_move"]) * mv * mv * (0.55 if ads_amount > 0.5 else 0.75)
 	if alive and not has_flag(F_ON_FLOOR) and not is_on_floor():
 		sp += float(w["spread_air"])
-	sp += _inaccuracy
+	sp += _inaccuracy * (0.6 if ads_amount > 0.5 else 1.0)
 	if crouch_amount > 0.5:
 		sp *= 0.75
 	if ads_amount > 0.5 and cls != "sniper":
-		sp *= 0.6
+		sp *= 0.6 if cls == "shotgun" else 0.35
 	if has_flag(F_COVER) and ads_amount < 0.5:
 		sp += 5.0 # blind fire
 	return sp
@@ -553,7 +556,30 @@ func start_reload() -> void:
 	reload_started.emit(cur, dur)
 	if model:
 		model.play_reload(dur)
-	Sfx.play3d("mag_out", eye_pos(), -4.0)
+	_play_reload_sound(w, dur)
+
+
+## Recorded reload sequences end with the magazine seating, so time them to finish with the reload.
+func _play_reload_sound(w: Dictionary, dur: float) -> void:
+	var cls: String = w.get("cls", "")
+	if cls == "shotgun":
+		return # shells are inserted one at a time in _finish_reload
+	var key := "reload_rifle"
+	match cls:
+		"pistol":
+			key = "reload_pistol"
+		"smg":
+			key = "reload_smg"
+		"sniper":
+			key = "reload_alt"
+	var delay := maxf(0.0, dur - 1.65)
+	var wid := cur
+	if delay <= 0.01:
+		Sfx.play3d(key, eye_pos(), -2.0, 1.0, 30.0)
+	else:
+		get_tree().create_timer(delay).timeout.connect(func():
+			if alive and cur == wid and _reload_end > 0.0:
+				Sfx.play3d(key, eye_pos(), -2.0, 1.0, 30.0))
 
 
 func _finish_reload() -> void:
@@ -563,16 +589,15 @@ func _finish_reload() -> void:
 		if int(a[1]) > 0 and int(a[0]) < int(w["mag"]):
 			a[0] = int(a[0]) + 1
 			a[1] = int(a[1]) - 1
-			Sfx.play3d("shell", eye_pos(), -4.0)
+			Sfx.play3d("shell_insert", eye_pos(), -3.0, randf_range(0.95, 1.05), 30.0)
 		if int(a[0]) < int(w["mag"]) and int(a[1]) > 0:
 			_reload_end = now() + float(w["reload"])
 			return
-		Sfx.play3d("pump", eye_pos(), -4.0)
+		Sfx.play3d("pump", eye_pos(), -3.0, 1.0, 30.0)
 	else:
 		var take := mini(int(w["mag"]) - int(a[0]), int(a[1]))
 		a[0] = int(a[0]) + take
 		a[1] = int(a[1]) - take
-		Sfx.play3d("mag_in", eye_pos(), -4.0)
 	ammo[cur] = a
 	_reload_end = 0.0
 
@@ -609,16 +634,18 @@ func _fire() -> void:
 	var pat: Array = Cfg.recoil_patterns.get(wid, [])
 	if not pat.is_empty():
 		var k: Vector2 = pat[mini(_shots, pat.size() - 1)]
-		var mult := 0.75 if crouch_amount > 0.5 else 1.0
+		var mult := 0.8 * (0.75 if crouch_amount > 0.5 else 1.0)
 		if ads_amount > 0.5:
-			mult *= 0.85
+			mult *= 0.7
 		punch.x = minf(punch.x + k.x * mult, float(w["recoil"]) * 9.0)
 		punch.y += k.y * mult
 	_shots += 1
 	_inaccuracy = minf(_inaccuracy + float(w.get("spread_fire", 0.5)), float(w.get("spread_fire", 0.5)) * 7.0 + 1.0)
 	if w["cls"] == "sniper" and float(w["rof"]) > 1.0:
 		scope_level = 0
-		Sfx.play3d("bolt", origin, -6.0)
+		get_tree().create_timer(0.45).timeout.connect(func(): if alive: Sfx.play3d("bolt", eye_pos(), -3.0, 1.0, 30.0))
+	elif w["cls"] == "shotgun":
+		get_tree().create_timer(0.38).timeout.connect(func(): if alive: Sfx.play3d("pump", eye_pos(), -4.0, 1.05, 30.0))
 	fired.emit(wid)
 	if model:
 		model.play_fire()

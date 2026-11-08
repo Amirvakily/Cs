@@ -681,6 +681,8 @@ func _damage_feedback(victim_id: String, hp: int, armor: int, attacker_id: Strin
 		return
 	v.health = hp
 	v.armor = armor
+	if v.model and v.model.has_method("play_hit") and v.alive:
+		v.model.play_hit(dir)
 	if v == local_soldier:
 		local_damaged.emit(float(amount), dir)
 		if controller:

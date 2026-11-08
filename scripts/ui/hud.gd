@@ -887,9 +887,12 @@ func _update_crosshair(s: Soldier, alive: bool) -> void:
 	var d := s.weapon_data()
 	var cls := String(d.get("cls", ""))
 	var mode := 0
+	var in_cover := (s.flags & Soldier.F_COVER) != 0
 	if s.scope_level > 0:
 		mode = 2
-	elif (s.flags & Soldier.F_COVER) != 0 and (s.flags & Soldier.F_AIM) == 0:
+	elif s.ads_amount > 0.3 and not in_cover:
+		mode = 2 # aiming down sights: the gun's own sights are the reticle
+	elif in_cover and (s.flags & Soldier.F_AIM) == 0:
 		mode = 1
 	elif cls == "sniper":
 		mode = 2 if d.has("scope") and float(d.get("spread", 0.0)) > 5.0 else 0

@@ -45,4 +45,5 @@ MASTER SERVER (optional public server list)
 
 CREDITS
   Textures, skies and props: Poly Haven (polyhaven.com), CC0 public domain.
+  Gun recordings: The Free Firearm Sound Library and other CC0 packs on OpenGameArt.org.
   Built with the Godot Engine (MIT license).

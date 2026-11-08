@@ -643,9 +643,14 @@ func _actiontest_tick() -> void:
 				_at_timer = 0.0
 		1:
 			if s and s.alive and _at_timer > 0.5:
+				# Freeze the bots so the scripted player is not interrupted.
+				for b in g.soldiers.values():
+					if b.is_bot:
+						b.brain = null
 				s.money = 16000
 				for item in ["kv74", "helmet", "frag", "breach"]:
 					g.request_buy(item)
+				print("ACTION sounds loaded: kv74=%s kv74_far=%s reload=%s" % [Sfx.has("shot_kv74"), Sfx.has("shot_kv74_far"), Sfx.has("reload_rifle")])
 				print("ACTION bought: primary=%s armor=%d helmet=%s frag=%d breach=%d money=%d cur=%s" % [s.primary, s.armor, s.helmet, s.grenades["frag"], s.breach_charges, s.money, s.cur])
 				_at_step = 2
 				_at_timer = 0.0

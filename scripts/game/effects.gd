@@ -62,10 +62,14 @@ func shot(origin: Vector3, ends: PackedVector3Array, weapon_id: String, from_loc
 	if cls != "knife" and cls != "grenade" and cls != "bomb" and cls != "breach":
 		muzzle_flash(origin, dir, weapon_id)
 	if play_shot_sounds and w.has("snd") and cls != "knife":
+		var snd: String = w["snd"]
 		if from_local_view:
-			Sfx.play(w["snd"], -3.0, _rng.randf_range(0.97, 1.03))
+			Sfx.play(snd, -1.0, _rng.randf_range(0.97, 1.03))
 		else:
-			Sfx.play3d(w["snd"], origin, 3.0, 1.0, 160.0)
+			var cam := get_viewport().get_camera_3d()
+			var d := cam.global_position.distance_to(origin) if cam else 0.0
+			var key := snd + "_far" if d > 12.0 and Sfx.has(snd + "_far") else snd
+			Sfx.play3d(key, origin, 4.0, _rng.randf_range(0.96, 1.04), 200.0)
 	# Tracers: only some bullets get one, like real tracer rounds.
 	var chance := 0.3
 	match cls:

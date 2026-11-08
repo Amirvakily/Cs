@@ -15,11 +15,11 @@ var _ambient: AudioStreamPlayer
 
 
 func _ready() -> void:
-	for i in 14:
+	for i in 28:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_p2d.append(p)
-	for i in 40:
+	for i in 56:
 		var p3 := AudioStreamPlayer3D.new()
 		p3.unit_size = 6.0
 		p3.max_distance = 110.0
@@ -56,6 +56,10 @@ func play(name: String, vol_db := 0.0, pitch := 1.0) -> void:
 	p.volume_db = vol_db
 	p.pitch_scale = pitch
 	p.play()
+
+
+func has(name: String) -> bool:
+	return streams.has(name)
 
 
 func play3d(name: String, pos: Vector3, vol_db := 0.0, pitch := 1.0, max_dist := 110.0) -> void:
@@ -360,7 +364,18 @@ func _generate_all() -> void:
 	call_deferred("_on_generated", s)
 
 
+## Recorded CC0 sounds (assets/sounds, built by tools/build_sounds.py) override synthesized ones.
+const RECORDED := ["shot_m9", "shot_raptor", "shot_hawk", "shot_vespa", "shot_mako", "shot_breacher", "shot_kv74",
+	"shot_ar7", "shot_hornet", "shot_sentry", "shot_longbow", "shot_thresher", "reload_pistol", "reload_rifle",
+	"reload_smg", "reload_alt", "bolt", "pump", "shell_insert"]
+
+
 func _on_generated(s: Dictionary) -> void:
+	for key in RECORDED:
+		for suffix in ["", "_far"]:
+			var path := "res://assets/sounds/%s%s.ogg" % [key, suffix]
+			if ResourceLoader.exists(path):
+				s[key + suffix] = load(path)
 	streams = s
 	ready_flag = true
 	if _thread and _thread.is_started():

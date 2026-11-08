@@ -13,6 +13,9 @@ var _cycle := 0
 var _shake := 0.0
 var _shake_t := 0.0
 var _kick := Vector2.ZERO
+var _roll := 0.0
+var _fov_kick := 0.0
+var _disp_punch := Vector2.ZERO
 
 # Cover state
 var in_cover := false
@@ -73,9 +76,16 @@ func _disconnect_all(o: Soldier) -> void:
 			o.disconnect(pair[0], pair[1])
 
 
-func _on_fired(_w: String) -> void:
+func _on_fired(w: String) -> void:
 	viewmodel.on_fire()
-	_kick += Vector2(0.35, randf_range(-0.2, 0.2))
+	# Per-shot camera feedback, scaled by weapon class and reduced while aiming.
+	var cls: String = Cfg.w(w).get("cls", "rifle")
+	var k: float = {"pistol": 0.55, "smg": 0.35, "rifle": 0.5, "lmg": 0.45, "shotgun": 1.4, "sniper": 1.6}.get(cls, 0.4)
+	if s and s.ads_amount > 0.5:
+		k *= 0.5
+	_kick += Vector2(0.45 * k, randf_range(-0.25, 0.25) * k)
+	_roll += randf_range(-1.0, 1.0) * 0.9 * k
+	_fov_kick = minf(_fov_kick + 1.1 * k, 4.0)
 
 
 func _on_reload(_w: String, d: float) -> void:
@@ -305,7 +315,12 @@ func _process(delta: float) -> void:
 		return
 	_shake = maxf(0.0, _shake - delta * 2.5)
 	_shake_t += delta * 40.0
-	_kick = _kick.lerp(Vector2.ZERO, clampf(delta * 12.0, 0.0, 1.0))
+	_kick = _kick.lerp(Vector2.ZERO, clampf(delta * 14.0, 0.0, 1.0))
+	_roll = lerpf(_roll, 0.0, clampf(delta * 12.0, 0.0, 1.0))
+	_fov_kick = lerpf(_fov_kick, 0.0, clampf(delta * 16.0, 0.0, 1.0))
+	if s and is_instance_valid(s):
+		# Smooth the recoil climb on screen so it reads as a kick, not a snap.
+		_disp_punch = _disp_punch.lerp(s.punch, clampf(delta * 28.0, 0.0, 1.0))
 	var shake_off := Vector3(sin(_shake_t * 1.3), sin(_shake_t * 1.7 + 1.0), 0) * _shake * 0.06
 	if s and is_instance_valid(s) and s.alive:
 		if s.model:
@@ -335,8 +350,10 @@ func _fp_camera(delta: float) -> void:
 	elif s.ads_amount > 0.0:
 		target_fov = lerpf(base, float(w.get("ads_fov", base * 0.8)), s.ads_amount)
 	cam.fov = lerpf(cam.fov, target_fov, clampf(delta * 18.0, 0.0, 1.0)) if s.scope_level == 0 else target_fov
+	if s.scope_level == 0:
+		cam.fov += _fov_kick
 	cam.global_position = s.eye_pos()
-	cam.rotation = Vector3(look_pitch + deg_to_rad(s.punch.x + _kick.x), look_yaw + deg_to_rad(s.punch.y + _kick.y), 0)
+	cam.rotation = Vector3(look_pitch + deg_to_rad(_disp_punch.x + _kick.x), look_yaw + deg_to_rad(_disp_punch.y + _kick.y), deg_to_rad(_roll))
 
 
 func _cover_camera(delta: float) -> void:
@@ -420,9 +437,8 @@ func spectate_name() -> String:
 # Feedback
 # ---------------------------------------------------------------------------
 func on_hurt(amount: float, dir: Vector3) -> void:
-	_shake = minf(_shake + amount * 0.02, 1.2)
-	if s:
-		s.punch.x += minf(amount * 0.05, 2.5)
+	_shake = minf(_shake + amount * 0.015, 1.0)
+	_roll += randf_range(-1.0, 1.0) * minf(amount * 0.04, 2.0)
 
 
 func on_local_death(killer_id: String) -> void:
