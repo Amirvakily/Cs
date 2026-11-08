@@ -241,7 +241,8 @@ func _server_info() -> Dictionary:
 # ---------------------------------------------------------------------------
 # Dedicated server
 # ---------------------------------------------------------------------------
-const SERVER_CFG_DEFAULT := """; BREACHLINE dedicated server configuration
+const SERVER_CFG_DEFAULT := """
+; BREACHLINE dedicated server configuration
 ; Edit and restart the server to apply.
 [server]
 name="BREACHLINE Server"

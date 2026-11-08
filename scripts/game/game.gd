@@ -699,8 +699,9 @@ func _kill(victim: Soldier, killer_id: String, wid: String, headshot: bool, wall
 	victim.deaths += 1
 	if killer and killer != victim:
 		if killer.team == victim.team:
-			killer.kills -= 1
-			killer.score -= 1
+			if wid != "bomb":
+				killer.kills -= 1
+				killer.score -= 1
 		else:
 			killer.kills += 1
 			killer.score += 1

@@ -216,7 +216,8 @@ func add_box(xf: Transform3D, size: Vector3, kind: String, phys := "", collide :
 		_body(phys if phys != "" else Mats.phys(kind)).add_child(cs)
 	if nav:
 		for fc in faces:
-			_nav_faces.append_array([p[fc[0]], p[fc[1]], p[fc[2]], p[fc[0]], p[fc[2]], p[fc[3]]])
+			# Recast expects the opposite winding to our face list.
+			_nav_faces.append_array([p[fc[0]], p[fc[2]], p[fc[1]], p[fc[0]], p[fc[3]], p[fc[2]]])
 
 
 func add_aabox(pos_min: Vector3, pos_max: Vector3, kind: String, phys := "", collide := true, nav := true) -> void:
@@ -346,7 +347,7 @@ func _build_ramp(p: Array, kind: String) -> void:
 	shape.points = pts
 	cs.shape = shape
 	_body("concrete").add_child(cs)
-	_nav_faces.append_array([lt0, ht0, ht1, lt0, ht1, lt1])
+	_nav_faces.append_array([lt0, ht1, ht0, lt0, lt1, ht1])
 
 
 ## Adds a quad choosing winding so the face points along `n`.
@@ -990,7 +991,7 @@ func rebake_nav() -> void:
 			var c := [p + Vector3(-s.x, -s.y, -s.z), p + Vector3(s.x, -s.y, -s.z), p + Vector3(s.x, s.y, -s.z), p + Vector3(-s.x, s.y, -s.z),
 				p + Vector3(-s.x, -s.y, s.z), p + Vector3(s.x, -s.y, s.z), p + Vector3(s.x, s.y, s.z), p + Vector3(-s.x, s.y, s.z)]
 			for q in [[0, 1, 2, 3], [5, 4, 7, 6], [1, 5, 6, 2], [4, 0, 3, 7], [3, 2, 6, 7]]:
-				faces.append_array([c[q[0]], c[q[1]], c[q[2]], c[q[0]], c[q[2]], c[q[3]]])
+				faces.append_array([c[q[0]], c[q[2]], c[q[1]], c[q[0]], c[q[3]], c[q[2]]])
 	src.add_faces(faces, Transform3D.IDENTITY)
 	NavigationServer3D.bake_from_source_geometry_data_async(_nav_mesh, src, _on_nav_baked)
 
@@ -1002,9 +1003,23 @@ func _on_nav_baked() -> void:
 func _apply_nav() -> void:
 	if not is_inside_tree():
 		return
-	_nav_region.navigation_mesh = _nav_mesh
+	var map := _nav_map()
+	var iter_before := NavigationServer3D.map_get_iteration_id(map)
 	_nav_region.navigation_mesh = _nav_mesh
 	NavigationServer3D.region_set_navigation_mesh(_nav_region.get_rid(), _nav_mesh)
+	# Wait until the navigation map has actually synced the new mesh before using it.
+	var probe := Vector3.ZERO
+	var pts: Array = spawn_points.get(0, [])
+	if not pts.is_empty():
+		probe = (pts[0] as Transform3D).origin
+	for i in 240:
+		await get_tree().physics_frame
+		if not is_inside_tree():
+			return
+		if NavigationServer3D.map_get_iteration_id(map) > iter_before:
+			var cp := NavigationServer3D.map_get_closest_point(map, probe)
+			if pts.is_empty() or cp.distance_to(probe) < 2.0:
+				break
 	nav_baked = true
 	nav_ready.emit()
 

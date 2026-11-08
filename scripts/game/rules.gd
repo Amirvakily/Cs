@@ -486,7 +486,8 @@ func on_kill(killer: Soldier, victim: Soldier, wid: String) -> void:
 	if mode == Cfg.MODE_DEFUSAL:
 		if killer and killer != victim:
 			if killer.team == victim.team:
-				killer.money = maxi(0, killer.money - Cfg.TEAMKILL_PENALTY)
+				if wid != "bomb":
+					killer.money = maxi(0, killer.money - Cfg.TEAMKILL_PENALTY)
 			else:
 				var reward := int(Cfg.w(wid).get("reward", 300))
 				killer.money = mini(Cfg.MAX_MONEY, killer.money + reward)
@@ -536,7 +537,7 @@ func _start_hunt() -> void:
 	g.reset_map()
 	respawn_at.clear()
 	# Hostile count by difficulty.
-	var want: int = [12, 16, 20, 26][clampi(int(g.config.get("difficulty", 1)), 0, 3)]
+	var want: int = [10, 14, 18, 22][clampi(int(g.config.get("difficulty", 1)), 0, 3)]
 	var have := count_on(1)
 	while have < want:
 		g.server_add_bot(1)
