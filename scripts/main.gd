@@ -59,6 +59,9 @@ func _boot() -> void:
 	if "--shots" in args:
 		_run_shots(args)
 		return
+	if "--actiontest" in args:
+		_run_actiontest()
+		return
 	_show_menu()
 
 
@@ -602,3 +605,97 @@ func _shots_tick() -> void:
 		_sh_frames = 0
 		if _sh_idx >= _sh_spots.size():
 			get_tree().quit()
+
+
+# ---------------------------------------------------------------------------
+# --actiontest: scripted human actions (buy, shoot a bot, throw a frag, plant) in a headless match.
+# ---------------------------------------------------------------------------
+var _at_step := 0
+var _at_timer := 0.0
+var _at_log := []
+
+
+func _run_actiontest() -> void:
+	start_offline({"map": "outpost", "mode": "defusal", "bots": 3, "difficulty": 0})
+	game.kill_event.connect(func(k, v, w, hs, wb): _at_log.append("kill %s->%s %s" % [k, v, w]))
+	game.round_event.connect(func(kind, d): _at_log.append("event " + kind))
+	game.hit_confirmed.connect(func(hs, k): _at_log.append("hit hs=%s killed=%s" % [hs, k]))
+	get_tree().physics_frame.connect(_actiontest_tick)
+
+
+func _actiontest_tick() -> void:
+	var dt := 1.0 / 60.0
+	_at_timer += dt
+	var g := game
+	if g == null:
+		return
+	if g.hud and g.hud.get("_team") and g.hud.get("_team").visible:
+		g.hud.get("_team").visible = false
+	var s := g.local_soldier
+	for a in ["fire", "use", "slot1", "slot4", "slot5"]:
+		Input.action_release(a)
+	match _at_step:
+		0:
+			if _at_timer > 1.0:
+				g.request_join_team(Cfg.ATK)
+				_at_step = 1
+				_at_timer = 0.0
+		1:
+			if s and s.alive and _at_timer > 0.5:
+				s.money = 16000
+				for item in ["kv74", "helmet", "frag", "breach"]:
+					g.request_buy(item)
+				print("ACTION bought: primary=%s armor=%d helmet=%s frag=%d breach=%d money=%d cur=%s" % [s.primary, s.armor, s.helmet, s.grenades["frag"], s.breach_charges, s.money, s.cur])
+				_at_step = 2
+				_at_timer = 0.0
+		2:
+			# wait for live phase, then face the nearest enemy from close range
+			if g.rs["phase"] == "live" and _at_timer > 0.5:
+				var target: Soldier = null
+				for o in g.alive_soldiers(Cfg.DEF):
+					target = o
+					break
+				if target:
+					if target.brain:
+						target.brain.set_physics_process(false)
+					var p := target.global_position + target.flat_forward() * 6.0
+					s.force_position(p, 0.0)
+					var to := target.global_position + Vector3(0, 1.3, 0) - s.eye_pos()
+					g.controller.look_yaw = atan2(-to.x, -to.z)
+					g.controller.look_pitch = asin(to.normalized().y)
+					print("ACTION shooting at %s from %.1fm (hp %d)" % [target.display_name, s.global_position.distance_to(target.global_position), target.health])
+				_at_step = 3
+				_at_timer = 0.0
+		3:
+			if _at_timer < 0.02:
+				s.switch_to(s.primary)
+			if _at_timer > 1.0 and _at_timer < 2.5:
+				Input.action_press("fire")
+			if _at_timer > 3.0:
+				print("ACTION after firing: ammo=%s log=%s" % [str(s.ammo.get(s.primary)), str(_at_log)])
+				_at_step = 4
+				_at_timer = 0.0
+		4:
+			if _at_timer < 0.02:
+				s.switch_to("frag")
+			if _at_timer > 1.2 and _at_timer < 1.25:
+				Input.action_press("fire")
+			if _at_timer > 4.5:
+				print("ACTION after frag: frags=%d log=%s" % [s.grenades["frag"], str(_at_log)])
+				_at_step = 5
+				_at_timer = 0.0
+		5:
+			# give the charge and plant it in site A
+			s.has_bomb = true
+			g.sync_inventory(s)
+			var site := g.world.closest_nav_point(g.world.site_center("A"))
+			s.force_position(site, 0.0)
+			_at_step = 6
+			_at_timer = 0.0
+		6:
+			if _at_timer > 0.3:
+				Input.action_press("use")
+			if _at_timer > 4.5:
+				print("ACTION after plant: bomb=%s log=%s" % [str(g.rs["bomb"]["state"]), str(_at_log)])
+				_at_step = 7
+				get_tree().quit()

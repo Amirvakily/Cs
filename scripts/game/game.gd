@@ -1152,8 +1152,10 @@ func server_buy(s: Soldier, item: String) -> void:
 	if can_buy(s, item) != "":
 		return
 	var price := mode.price(s, item)
+	var switch_after := false
 	if Cfg.WEAPONS.has(item):
 		var w := Cfg.w(item)
+		switch_after = int(w["slot"]) == 1 or (int(w["slot"]) == 2 and s.primary == "")
 		match int(w["slot"]):
 			1:
 				if s.primary != "":
@@ -1180,6 +1182,10 @@ func server_buy(s: Soldier, item: String) -> void:
 				s.has_kit = true
 	s.money -= price
 	sync_inventory(s)
+	# The owner normally switches when its inventory changes; on the server the
+	# inventory was already updated above, so switch explicitly for host/bots.
+	if switch_after and s.is_authority() and s.alive:
+		s.switch_to(item)
 	if s == local_soldier:
 		Sfx.play("buy", -6.0)
 
