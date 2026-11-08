@@ -543,9 +543,30 @@ func _play_shot_fx(s: Soldier, wid: String, ends: PackedVector3Array, impacts: A
 	if dedicated or fx == null:
 		return
 	var origin := _shot_origin(s)
+	_near_miss(s, ends)
 	fx.shot(origin, ends, wid, s == local_soldier and controller != null and controller.first_person())
 	for imp in impacts:
 		fx.impact(imp["pos"], imp["normal"], imp["mat"])
+
+
+## Whizz/crack when an enemy bullet passes close to the local camera.
+func _near_miss(s: Soldier, ends: PackedVector3Array) -> void:
+	if local_soldier == null or s == local_soldier or not local_soldier.alive or controller == null:
+		return
+	var ear := controller.cam.global_position
+	var from := s.eye_pos()
+	for e in ends:
+		var seg := e - from
+		var len2 := seg.length_squared()
+		if len2 < 1.0:
+			continue
+		var t := clampf((ear - from).dot(seg) / len2, 0.0, 1.0)
+		if t <= 0.02 or t >= 0.98:
+			continue
+		var p := from + seg * t
+		if p.distance_to(ear) < 2.2:
+			Sfx.play3d("whizz%d" % (randi() % 3), p, -2.0, randf_range(0.9, 1.15), 20.0)
+			return
 
 
 ## Called by the soldier's authority after firing.

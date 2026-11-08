@@ -28,6 +28,19 @@ var _pump: Node3D
 var _pump_rest := Vector3.ZERO
 var _bolt: Node3D
 var _bolt_rest := Transform3D.IDENTITY
+var _slide: Node3D
+var _slide_rest := Vector3.ZERO
+var _sight := Vector3(0, 0.1, -0.1)
+var _eye := 0.18
+var _cls := "rifle"
+# Recoil springs (position / rotation offsets and their velocities)
+var _rp := Vector3.ZERO
+var _rpv := Vector3.ZERO
+var _rr := Vector3.ZERO
+var _rrv := Vector3.ZERO
+var _slide_t := -1.0
+var _shake := 0.0
+var _rng := RandomNumberGenerator.new()
 
 var _t := 0.0
 var _draw := 1.0
@@ -155,6 +168,7 @@ func set_weapon(id: String) -> void:
 	_mag = null
 	_pump = null
 	_bolt = null
+	_slide = null
 	if id == "":
 		return
 	gun = WeaponModels.build(id)
@@ -169,6 +183,13 @@ func set_weapon(id: String) -> void:
 		k = 1.12
 	gun.scale = Vector3.ONE * k
 	sight_y = float(gun.get_meta("sight_y", 0.1)) * k
+	_eye = float(gun.get_meta("eye_relief", 0.18))
+	var sm := gun.get_node_or_null("Sight") as Node3D
+	_sight = gun.transform * (sm.position if sm else Vector3(0, sight_y / k, -0.1))
+	_cls = String(Cfg.w(id).get("cls", "rifle"))
+	_slide = gun.get_node_or_null("Slide") as Node3D
+	if _slide:
+		_slide_rest = _slide.position
 	_mag = gun.get_node_or_null("Mag") as Node3D
 	if _mag:
 		_mag_rest = _mag.position
@@ -186,25 +207,62 @@ func set_weapon(id: String) -> void:
 	_throw = -1.0
 	_pump_t = -1.0
 	_bolt_t = -1.0
+	_slide_t = -1.0
+	_rp = Vector3.ZERO
+	_rpv = Vector3.ZERO
+	_rr = Vector3.ZERO
+	_rrv = Vector3.ZERO
 
 
+## Per-shot recoil: instant snap plus a velocity impulse, then a damped spring brings it home.
 func on_fire() -> void:
-	var cls: String = Cfg.w(weapon_id).get("cls", "rifle")
-	match cls:
+	# back (m), rise (rad), yaw/roll jitter (rad), shake
+	var p := [0.022, 0.045, 0.015, 0.025, 0.0]
+	match _cls:
 		"pistol":
-			_kick += 1.3
+			p = [0.02, 0.085, 0.015, 0.03, 0.0]
+		"smg":
+			p = [0.013, 0.03, 0.013, 0.02, 0.0]
 		"shotgun":
-			_kick += 2.4
+			p = [0.05, 0.14, 0.02, 0.05, 0.0]
 			_pump_t = 0.0
 		"sniper":
-			_kick += 2.6
+			p = [0.06, 0.16, 0.02, 0.04, 0.0]
 			if _bolt:
 				_bolt_t = 0.0
-		"smg":
-			_kick += 0.7
-		_:
-			_kick += 1.0
-	_kick = minf(_kick, 4.0)
+		"lmg":
+			p = [0.02, 0.035, 0.024, 0.035, 1.0]
+	var a := smoothstep(0.0, 1.0, _ads)
+	var pos_k := lerpf(1.0, 0.45, a)
+	var rot_k := lerpf(1.0, 0.35, a)
+	var back: float = p[0] * pos_k
+	var rise: float = p[1] * rot_k
+	var yaw: float = _rng.randf_range(-1.0, 1.0) * p[2] * rot_k
+	var roll: float = _rng.randf_range(-1.0, 1.0) * p[3] * rot_k
+	_rp.z += back * 0.6
+	_rpv.z += back * 24.0
+	_rp.y += back * 0.1
+	_rr.x += rise * 0.55
+	_rrv.x += rise * 20.0
+	_rr.y += yaw * 0.5
+	_rrv.y += yaw * 18.0
+	_rr.z += roll * 0.5
+	_rrv.z += roll * 18.0
+	_shake = minf(1.0, _shake + float(p[4]) * 0.5)
+	_rp.z = minf(_rp.z, 0.09)
+	_rr.x = minf(_rr.x, 0.3)
+	if _slide:
+		_slide_t = 0.0
+
+
+func _spring(x: Vector3, v: Vector3, k: float, zeta: float, dt: float) -> Array:
+	var c := 2.0 * zeta * sqrt(k)
+	var steps := 3
+	var h := dt / steps
+	for i in steps:
+		v += (-k * x - c * v) * h
+		x += v * h
+	return [x, v]
 
 
 func on_reload(duration: float) -> void:
@@ -260,14 +318,27 @@ func update_vm(delta: float, s: Soldier, look_delta: Vector2) -> void:
 		_bolt_t += delta / 1.15
 		if _bolt_t >= 1.0:
 			_bolt_t = -1.0
-	_ads = s.ads_amount
+	if _slide_t >= 0.0:
+		_slide_t += delta / 0.09
+		if _slide_t >= 1.0:
+			_slide_t = -1.0
+	var sp := _spring(_rp, _rpv, 330.0, 0.42, delta)
+	_rp = sp[0]
+	_rpv = sp[1]
+	var sr := _spring(_rr, _rrv, 260.0, 0.4, delta)
+	_rr = sr[0]
+	_rrv = sr[1]
+	_shake = maxf(0.0, _shake - delta * 4.0)
+	# Snipers aim through the scope overlay, so their unscoped ADS pose is never used.
+	_ads = 0.0 if _cls == "sniper" else smoothstep(0.0, 1.0, s.ads_amount)
 	var hv := Vector2(s.velocity.x, s.velocity.z).length()
 	var on_floor := (s.flags & F_ON_FLOOR) != 0 or s.is_on_floor()
 	var target_amp := clampf(hv / 5.5, 0.0, 1.0) if on_floor else 0.0
 	_bob_amp = lerpf(_bob_amp, target_amp, clampf(delta * 8.0, 0.0, 1.0))
 	_bob += delta * (1.5 + hv * 1.75)
 	_fall = lerpf(_fall, clampf(-s.velocity.y * 0.006, -0.03, 0.04), clampf(delta * 10.0, 0.0, 1.0))
-	var sway_target := Vector2(clampf(-look_delta.x * 0.0009, -0.07, 0.07), clampf(-look_delta.y * 0.0009, -0.07, 0.07))
+	var sway_k := 1.0 - 0.8 * _ads
+	var sway_target := Vector2(clampf(-look_delta.x * 0.0009, -0.07, 0.07), clampf(-look_delta.y * 0.0009, -0.07, 0.07)) * sway_k
 	_sway = _sway.lerp(sway_target, clampf(delta * 9.0, 0.0, 1.0))
 	_apply_pose(s)
 
@@ -276,12 +347,12 @@ func _apply_pose(s: Soldier) -> void:
 	# Base pose (hip / ADS)
 	var hip_pos := Vector3(0.115, -0.178, -0.3)
 	var hip_rot := Vector3(0.035, 0.075, -0.035)
-	var ads_pos := Vector3(0.0, -sight_y, -0.25)
+	# ADS: put the sight line on the view axis, `_eye` metres in front of the eye.
+	var ads_pos := Vector3(-_sight.x, -_sight.y, -_eye - _sight.z)
 	match hold:
 		"pistol":
 			hip_pos = Vector3(0.13, -0.135, -0.42)
 			hip_rot = Vector3(0.02, 0.2, -0.05)
-			ads_pos = Vector3(0.0, -sight_y, -0.3)
 		"knife":
 			hip_pos = Vector3(0.15, -0.16, -0.29)
 			hip_rot = Vector3(0.35, 0.4, -0.45)
@@ -298,13 +369,16 @@ func _apply_pose(s: Soldier) -> void:
 	var pos := hip_pos.lerp(ads_pos, ads)
 	var rot := hip_rot.lerp(Vector3.ZERO, ads)
 	# Bob, breathing, landing
-	var amp := _bob_amp * (1.0 - ads * 0.85)
+	var amp := _bob_amp * (1.0 - ads * 0.9)
 	pos += Vector3(sin(_bob) * 0.01 * amp, -absf(cos(_bob)) * 0.012 * amp + sin(_t * 1.5) * 0.0018 * (1.0 - ads), 0.0)
 	pos.y += _fall
 	rot.z += sin(_bob) * 0.012 * amp
-	# Kick
-	pos.z += 0.022 * _kick * (0.5 if ads > 0.5 else 1.0)
-	rot.x += 0.03 * _kick
+	# Recoil springs (+ LMG shake)
+	pos += _rp
+	rot += _rr
+	if _shake > 0.0:
+		pos += Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), 0) * 0.0025 * _shake
+		rot.z += _rng.randf_range(-1, 1) * 0.01 * _shake
 	# Draw
 	var e := 1.0 - pow(1.0 - _draw, 3.0)
 	pos.y -= (1.0 - e) * 0.22
@@ -366,10 +440,16 @@ func _apply_pose(s: Soldier) -> void:
 			gun.visible = k < 0.55
 	elif gun:
 		gun.visible = true
-	# Sway
-	rot.y += _sway.x * (1.0 - ads * 0.6)
-	rot.x += _sway.y * (1.0 - ads * 0.6)
+	# Sway (already reduced while aiming)
+	rot.y += _sway.x
+	rot.x += _sway.y
 	pos.x += _sway.x * 0.15 * (1.0 - ads)
+	# Slide / bolt carrier cycling
+	if _slide:
+		var sk := 0.0
+		if _slide_t >= 0.0:
+			sk = _slide_t / 0.3 if _slide_t < 0.3 else 1.0 - (_slide_t - 0.3) / 0.7
+		_slide.position = _slide_rest + Vector3(0, 0, (0.026 if hold == "pistol" else 0.03) * sk)
 	holder.transform = Transform3D(Basis.from_euler(rot), pos)
 	_place_arms()
 

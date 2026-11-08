@@ -47,6 +47,8 @@ var _fall_side := 0.0
 var _crouch := 0.0
 var _speed_s := 0.0
 var _lv := Vector3.ZERO
+var _hit_t := -1.0
+var _hit_dir := Vector3.ZERO
 
 
 func setup(p_team: int, seed: int, p_hostile := false) -> void:
@@ -151,6 +153,16 @@ func play_knife() -> void:
 	_knife_t = 0.0
 
 
+## Short upper-body flinch; `dir` is the direction the bullet/blast was travelling.
+func play_hit(dir: Vector3) -> void:
+	if _dead or body == null:
+		return
+	var ld := global_transform.basis.inverse() * dir
+	ld.y = 0.0
+	_hit_dir = ld.normalized() if ld.length() > 0.001 else Vector3(0, 0, 1)
+	_hit_t = 0.0
+
+
 func die(dir: Vector3) -> void:
 	if _dead:
 		return
@@ -208,6 +220,10 @@ func update_anim(delta: float, s: Soldier) -> void:
 		_knife_t += delta / 0.38
 		if _knife_t >= 1.0:
 			_knife_t = -1.0
+	if _hit_t >= 0.0:
+		_hit_t += delta / 0.28
+		if _hit_t >= 1.0:
+			_hit_t = -1.0
 	if not s.alive and not _dead:
 		die(Vector3(0, 0, 1).rotated(Vector3.UP, rotation.y))
 	if s.alive and _dead:
@@ -249,8 +265,13 @@ func _pose(c: float, amp: float, pitch: float, low_ready: bool, airborne: bool, 
 		lean += 0.08
 	var aim := clampf(pitch, -1.2, 1.2)
 	var spine_pitch := lean + aim * 0.3
-	spine.rotation = Vector3(spine_pitch, twist + sin(_phase) * 0.12 * amp, 0)
-	head.rotation = Vector3(aim * 0.85 - spine_pitch, -twist * 0.8, 0)
+	var flinch := Vector3.ZERO
+	if _hit_t >= 0.0 and not dead:
+		# fast snap, slower settle
+		var k := sin(PI * pow(_hit_t, 0.6))
+		flinch = Vector3(_hit_dir.z * 0.32, _hit_dir.x * 0.12, -_hit_dir.x * 0.26) * k
+	spine.rotation = Vector3(spine_pitch, twist + sin(_phase) * 0.12 * amp, 0) + flinch
+	head.rotation = Vector3(aim * 0.85 - spine_pitch, -twist * 0.8, 0) + flinch * 0.6
 	# Legs
 	var hips_xf := hips.transform
 	var md := Vector2(_lv.x, _lv.z)

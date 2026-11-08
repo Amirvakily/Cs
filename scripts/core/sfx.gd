@@ -260,6 +260,17 @@ func _generate_all() -> void:
 	b = _buf(0.06)
 	_tone(b, 1.0, 1900.0, 1800.0, 0.02)
 	s["hitmark"] = _finish(b, 0.35)
+	# Bullet passing close by: a sharp supersonic crack followed by a falling whizz.
+	for k in 3:
+		b = _buf(0.32)
+		_noise_layer(b, 1.0, 0.004, 9000.0, 2500.0)
+		var ph2 := 0.0
+		for i in b.size():
+			var t := float(i) / SR
+			var f := lerpf(2600.0 + k * 300.0, 700.0, minf(t / 0.22, 1.0))
+			ph2 += TAU * f / SR
+			b[i] += (_rng.randf_range(-1.0, 1.0) * 0.5 + sin(ph2) * 0.25) * exp(-t / 0.07) * minf(1.0, t / 0.01) * 0.6
+		s["whizz%d" % k] = _finish(b, 0.55)
 	b = _buf(0.25)
 	_noise_layer(b, 0.5, 0.01, 7000.0, 2000.0)
 	_tone(b, 0.6, 1100.0, 900.0, 0.03)

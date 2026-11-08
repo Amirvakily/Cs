@@ -550,6 +550,7 @@ var _sh_frames := 0
 var _sh_idx := -1
 var _sh_out := ""
 var _sh_spots := []
+var _sh_ads := false
 
 
 func _run_shots(args: PackedStringArray) -> void:
@@ -559,6 +560,7 @@ func _run_shots(args: PackedStringArray) -> void:
 	_sh_out = args[i + 3]
 	if args.size() > i + 4:
 		Cfg.settings["quality"] = int(args[i + 4])
+	_sh_ads = args.has("--ads")
 	start_offline({"map": map, "mode": mode, "bots": 9, "difficulty": 1})
 	set_process(true)
 	get_tree().process_frame.connect(_shots_tick)
@@ -588,6 +590,11 @@ func _shots_tick() -> void:
 	var s := game.local_soldier
 	if s == null:
 		return
+	if _sh_ads:
+		if s.primary != "kv74":
+			s.money = 16000
+			game.server_buy(s, "kv74")
+		Input.action_press("aim")
 	if _sh_frames == 2:
 		var spot: Array = _sh_spots[_sh_idx]
 		if spot[1] != Vector3.INF:
@@ -600,7 +607,7 @@ func _shots_tick() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if _sh_frames == 45:
 		var img := get_viewport().get_texture().get_image()
-		img.save_png("%s/%s_%s.png" % [_sh_out, game.config["map"], _sh_spots[_sh_idx][0]])
+		img.save_png("%s/%s_%s%s.png" % [_sh_out, game.config["map"], _sh_spots[_sh_idx][0], "_ads" if _sh_ads else ""])
 		print("SHOT ", _sh_spots[_sh_idx][0])
 		_sh_idx += 1
 		_sh_frames = 0

@@ -66,25 +66,25 @@ static func _make(id: String) -> Node3D:
 		"longbow":
 			return _polyhaven_rifle(root)
 		"kv74":
-			_kv74(b, mb, mk)
+			_kv74(b, mb, mk, extra)
 		"ar7":
-			_ar7(b, mb, mk)
+			_ar7(b, mb, mk, extra)
 		"hornet":
-			_hornet(b, mb, mk)
+			_hornet(b, mb, mk, extra)
 		"vespa":
-			_vespa(b, mb, mk)
+			_vespa(b, mb, mk, extra)
 		"mako":
-			_mako(b, mb, mk)
+			_mako(b, mb, mk, extra)
 		"raptor":
-			_raptor(b, mb, mk)
+			_raptor(b, mb, mk, extra)
 		"hawk":
-			_hawk(b, mb, mk)
+			_hawk(b, mb, mk, extra)
 		"breacher":
 			_breacher(b, mb, mk, extra)
 		"sentry":
-			_sentry(b, mb, mk)
+			_sentry(b, mb, mk, extra)
 		"thresher":
-			_thresher(b, mb, mk)
+			_thresher(b, mb, mk, extra)
 		"knife":
 			_knife(b, mk)
 		"frag", "flash", "smoke":
@@ -94,7 +94,7 @@ static func _make(id: String) -> Node3D:
 		"breach":
 			_breach(b, mk)
 		_:
-			_ar7(b, mb, mk)
+			_ar7(b, mb, mk, extra)
 	_add_mesh(root, "Body", b)
 	var mag := Node3D.new()
 	mag.name = "Mag"
@@ -113,6 +113,7 @@ static func _make(id: String) -> Node3D:
 	_marker(root, "Sight", Vector3(0, mk["sight_y"], mk["sight_z"]))
 	root.set_meta("hold", hold_of(id))
 	root.set_meta("sight_y", mk["sight_y"])
+	root.set_meta("eye_relief", float(mk.get("eye", 0.44 if hold_of(id) == "pistol" else 0.18)))
 	return root
 
 
@@ -172,6 +173,26 @@ static func _round_guard(b: VisUtil.Builder, key: String, r: float, len: float, 
 			b.box("polymer", Vector3(0.004, r * 0.5, len / ribs * 0.5), Vector3(pos.x + sx * r * 0.98, pos.y, z + len / ribs * 0.5), Vector3.ZERO, Color(0.02, 0.02, 0.02))
 
 
+## Open tube red-dot sight (see-through rings) centred on the sight line at height y.
+static func _red_dot(b: VisUtil.Builder, y: float, z_rear: float, z_front: float, mount_y: float, r := 0.018) -> void:
+	var zc := (z_rear + z_front) * 0.5
+	var len := absf(z_rear - z_front)
+	b.box("parker", Vector3(0.022, y - r - mount_y, len * 0.8), Vector3(0, (y - r + mount_y) * 0.5, zc), Vector3.ZERO, BLK)
+	for zz in [z_rear, z_front]:
+		b.torus("parker", r, r + 0.0045, Vector3(0, y, zz), Vector3(90, 0, 0), BLK)
+	for sx in [-1.0, 1.0]:
+		b.box("parker", Vector3(0.004, 0.008, len), Vector3(sx * (r + 0.002), y, zc), Vector3.ZERO, BLK)
+	b.box("parker", Vector3(0.008, 0.004, len), Vector3(0, y + r + 0.002, zc), Vector3.ZERO, BLK)
+	b.cyl("parker", 0.006, 0.012, Vector3(r + 0.008, y, zc), Vector3(0, 0, 90), BLK)
+	b.sphere("lens_red", 0.0018, Vector3(0, y, z_front + 0.004), Color.WHITE)
+
+
+static func _slide(extra: Dictionary, pos: Vector3) -> VisUtil.Builder:
+	var sb := VisUtil.Builder.new()
+	extra["Slide"] = [sb, pos]
+	return sb
+
+
 static func _rail(b: VisUtil.Builder, y: float, z0: float, z1: float, col := BLK) -> void:
 	var len := z1 - z0
 	b.box("parker", Vector3(0.022, 0.008, len), Vector3(0, y, (z0 + z1) * 0.5), Vector3.ZERO, col)
@@ -181,7 +202,7 @@ static func _rail(b: VisUtil.Builder, y: float, z0: float, z1: float, col := BLK
 
 
 # --- Rifles -----------------------------------------------------------------
-static func _kv74(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
+static func _kv74(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
 	var rc := Color(0.15, 0.15, 0.145)
 	b.box("parker", Vector3(0.052, 0.066, 0.31), Vector3(0, 0.046, -0.075), Vector3.ZERO, rc)
 	b.cyl("parker", 0.026, 0.29, Vector3(0, 0.078, -0.07), Vector3(90, 0, 0), GM2, -1.0, 16)
@@ -189,9 +210,12 @@ static func _kv74(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> vo
 		b.sphere("steel", 0.003, Vector3(0.027, 0.03, -0.17 + i * 0.09), STEEL.darkened(0.4))
 	_eject_port(b, 0.027, 0.07, -0.1, 0.075)
 	b.box("steel", Vector3(0.006, 0.012, 0.09), Vector3(0.029, 0.058, -0.02), Vector3.ZERO, STEEL.darkened(0.35))
-	b.capsule("steel", 0.006, 0.04, Vector3(0.036, 0.074, -0.165), Vector3(0, 0, 90), STEEL.darkened(0.2))
+	var sl := _slide(extra, Vector3(0.031, 0.074, -0.165))
+	sl.capsule("parker", 0.0042, 0.02, Vector3.ZERO, Vector3(0, 0, 90), GM2)
 	b.box("parker", Vector3(0.03, 0.026, 0.05), Vector3(0, 0.098, -0.245), Vector3.ZERO, rc)
-	b.box("parker", Vector3(0.012, 0.012, 0.06), Vector3(0, 0.113, -0.24), Vector3.ZERO, GM2)
+	b.box("parker", Vector3(0.024, 0.006, 0.05), Vector3(0, 0.112, -0.24), Vector3.ZERO, GM2)
+	for sx in [-1.0, 1.0]:
+		b.box("parker", Vector3(0.006, 0.012, 0.012), Vector3(sx * 0.005, 0.116, -0.235), Vector3.ZERO, GM2)
 	b.cyl("parker", 0.0115, 0.44, Vector3(0, 0.064, -0.45), Vector3(90, 0, 0), GM2)
 	b.box("parker", Vector3(0.028, 0.048, 0.03), Vector3(0, 0.078, -0.475), Vector3.ZERO, rc)
 	b.cyl("parker", 0.012, 0.2, Vector3(0, 0.098, -0.37), Vector3(90, 0, 0), rc)
@@ -200,7 +224,9 @@ static func _kv74(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> vo
 	for i in 3:
 		b.box("wood", Vector3(0.071, 0.004, 0.012), Vector3(0, 0.068, -0.27 - i * 0.05), Vector3.ZERO, WOOD2)
 	b.box("parker", Vector3(0.02, 0.055, 0.025), Vector3(0, 0.09, -0.61), Vector3.ZERO, rc)
-	b.cyl("parker", 0.003, 0.03, Vector3(0, 0.13, -0.61), Vector3.ZERO, GM2, -1.0, 6)
+	b.cyl("parker", 0.0025, 0.012, Vector3(0, 0.116, -0.61), Vector3.ZERO, GM2, -1.0, 6)
+	for sx in [-1.0, 1.0]:
+		b.box("parker", Vector3(0.004, 0.022, 0.016), Vector3(sx * 0.009, 0.12, -0.61), Vector3.ZERO, rc)
 	b.cyl("parker", 0.016, 0.07, Vector3(0, 0.064, -0.695), Vector3(90, 0, 0), GM2, 0.014)
 	b.box("polymer", Vector3(0.022, 0.004, 0.03), Vector3(0, 0.08, -0.7), Vector3.ZERO, Color(0.02, 0.02, 0.02))
 	_trigger_group(b, 0.0, GM2)
@@ -221,11 +247,12 @@ static func _kv74(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> vo
 	mk["mag"] = Vector3(0, 0.012, -0.115)
 	mk["muzzle"] = Vector3(0, 0.064, -0.735)
 	mk["left"] = Vector3(0, 0.04, -0.34)
-	mk["sight_y"] = 0.118
-	mk["sight_z"] = -0.24
+	mk["sight_y"] = 0.122
+	mk["sight_z"] = -0.235
+	mk["eye"] = 0.16
 
 
-static func _ar7(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
+static func _ar7(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
 	var c := Color(0.15, 0.15, 0.155)
 	b.box("parker", Vector3(0.048, 0.054, 0.25), Vector3(0, 0.068, -0.06), Vector3.ZERO, c)
 	b.box("parker", Vector3(0.044, 0.05, 0.17), Vector3(0, 0.024, -0.04), Vector3.ZERO, c)
@@ -233,7 +260,9 @@ static func _ar7(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> voi
 	b.box("parker", Vector3(0.036, 0.05, 0.07), Vector3(0, -0.006, -0.1), Vector3.ZERO, c)
 	b.cyl("parker", 0.008, 0.03, Vector3(0.03, 0.072, -0.01), Vector3(90, 0, 0), GM2)
 	_eject_port(b, 0.025, 0.065, -0.07, 0.065)
-	b.box("steel", Vector3(0.012, 0.012, 0.02), Vector3(0.028, 0.08, -0.03), Vector3.ZERO, STEEL.darkened(0.4))
+	var sl := _slide(extra, Vector3(0.0, 0.092, 0.065))
+	sl.box("steel", Vector3(0.03, 0.01, 0.03), Vector3.ZERO, Vector3.ZERO, STEEL.darkened(0.45))
+	sl.box("steel", Vector3(0.006, 0.014, 0.05), Vector3(0.024, -0.025, -0.13), Vector3.ZERO, STEEL.darkened(0.3))
 	_rail(b, 0.1, -0.47, 0.07, BLK)
 	_round_guard(b, "polymer", 0.031, 0.27, Vector3(0, 0.068, -0.32), Color(0.2, 0.2, 0.2), 6)
 	for sx in [-1.0, 1.0]:
@@ -241,9 +270,7 @@ static func _ar7(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> voi
 	b.cyl("parker", 0.0095, 0.2, Vector3(0, 0.068, -0.55), Vector3(90, 0, 0), GM2)
 	b.box("parker", Vector3(0.024, 0.034, 0.024), Vector3(0, 0.08, -0.5), Vector3.ZERO, BLK)
 	_flash_hider(b, Vector3(0, 0.068, -0.67), 0.012, 0.055)
-	b.box("parker", Vector3(0.014, 0.036, 0.018), Vector3(0, 0.12, -0.43), Vector3.ZERO, BLK)
-	b.cyl("parker", 0.0025, 0.02, Vector3(0, 0.145, -0.43), Vector3.ZERO, BLK, -1.0, 6)
-	b.box("steel", Vector3(0.03, 0.01, 0.03), Vector3(0, 0.092, 0.065), Vector3.ZERO, STEEL.darkened(0.45))
+	b.box("parker", Vector3(0.014, 0.008, 0.03), Vector3(0, 0.109, -0.43), Vector3.ZERO, BLK)
 	b.cyl("parker", 0.015, 0.18, Vector3(0, 0.058, 0.15), Vector3(90, 0, 0), BLK)
 	b.box("polymer", Vector3(0.04, 0.07, 0.15), Vector3(0, 0.038, 0.21), Vector3.ZERO, DGRY)
 	b.capsule("polymer", 0.02, 0.13, Vector3(0, 0.078, 0.21), Vector3(90, 0, 0), DGRY, Vector3(1.0, 1, 0.9))
@@ -256,7 +283,7 @@ static func _ar7(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> voi
 		b.box("parker", Vector3(0.006, 0.04, 0.07), Vector3(sx * 0.018, 0.14, -0.12), Vector3.ZERO, BLK)
 	b.capsule("parker", 0.006, 0.048, Vector3(0, 0.162, -0.12), Vector3(0, 0, 90), BLK)
 	b.box("parker", Vector3(0.042, 0.008, 0.07), Vector3(0, 0.16, -0.12), Vector3.ZERO, BLK)
-	b.sphere("lens_red", 0.0022, Vector3(0, 0.142, -0.148), Color.WHITE)
+	b.sphere("lens_red", 0.0022, Vector3(0, 0.14, -0.148), Color.WHITE)
 	b.cyl("polymer", 0.015, 0.085, Vector3(0, 0.0, -0.34), Vector3.ZERO, BLK)
 	for i in 4:
 		b.cyl("polymer", 0.0158, 0.004, Vector3(0, -0.02 + i * 0.015, -0.34), Vector3.ZERO, Color(0.03, 0.03, 0.03))
@@ -269,20 +296,20 @@ static func _ar7(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> voi
 	mk["mag"] = Vector3(0, -0.01, -0.1)
 	mk["muzzle"] = Vector3(0, 0.068, -0.7)
 	mk["left"] = Vector3(0, -0.01, -0.34)
-	mk["sight_y"] = 0.142
+	mk["sight_y"] = 0.14
 	mk["sight_z"] = -0.12
+	mk["eye"] = 0.2
 
 
-static func _hornet(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
+static func _hornet(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
 	var c := Color(0.42, 0.42, 0.33)
 	b.box("polymer", Vector3(0.058, 0.07, 0.55), Vector3(0, 0.045, 0.02), Vector3.ZERO, c)
 	b.cyl("polymer", 0.029, 0.55, Vector3(0, 0.012, 0.02), Vector3(90, 0, 0), c.darkened(0.12), -1.0, 16, Vector3(1, 1, 0.9))
 	b.cyl("polymer", 0.029, 0.5, Vector3(0, 0.078, 0.0), Vector3(90, 0, 0), c, -1.0, 16, Vector3(1, 1, 0.5))
 	b.box("polymer", Vector3(0.03, 0.035, 0.26), Vector3(0, 0.1, -0.03), Vector3.ZERO, c)
-	b.cyl("parker", 0.022, 0.22, Vector3(0, 0.135, -0.04), Vector3(90, 0, 0), BLK)
-	b.cyl("parker", 0.026, 0.04, Vector3(0, 0.135, -0.16), Vector3(90, 0, 0), BLK)
-	b.cyl("glass", 0.021, 0.004, Vector3(0, 0.135, -0.18), Vector3(90, 0, 0))
-	b.cyl("glass", 0.018, 0.004, Vector3(0, 0.135, 0.071), Vector3(90, 0, 0))
+	_red_dot(b, 0.142, 0.01, -0.05, 0.1175)
+	var sl := _slide(extra, Vector3(-0.032, 0.062, -0.12))
+	sl.capsule("parker", 0.006, 0.035, Vector3.ZERO, Vector3(0, 0, 90), BLK)
 	b.cyl("parker", 0.01, 0.12, Vector3(0, 0.05, -0.31), Vector3(90, 0, 0), GM2)
 	_flash_hider(b, Vector3(0, 0.05, -0.385), 0.013, 0.05)
 	b.capsule("polymer", 0.024, 0.08, Vector3(0, -0.04, -0.2), Vector3(14, 0, 0), c, Vector3(1.0, 1, 1.2))
@@ -296,14 +323,17 @@ static func _hornet(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> 
 	mk["mag"] = Vector3(0, -0.01, 0.12)
 	mk["muzzle"] = Vector3(0, 0.05, -0.415)
 	mk["left"] = Vector3(0, -0.02, -0.2)
-	mk["sight_y"] = 0.135
-	mk["sight_z"] = -0.04
+	mk["sight_y"] = 0.142
+	mk["sight_z"] = 0.01
+	mk["eye"] = 0.19
 
 
-static func _sentry(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
+static func _sentry(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
 	var t := Color(0.6, 0.52, 0.38)
 	b.box("parker", Vector3(0.052, 0.064, 0.3), Vector3(0, 0.055, -0.07), Vector3.ZERO, GM)
 	_eject_port(b, 0.027, 0.065, -0.06, 0.07)
+	var sl := _slide(extra, Vector3(0.034, 0.062, -0.12))
+	sl.capsule("parker", 0.006, 0.03, Vector3.ZERO, Vector3(0, 0, 90), BLK)
 	_round_guard(b, "polymer", 0.031, 0.3, Vector3(0, 0.062, -0.37), t, 7)
 	b.cyl("parker", 0.011, 0.26, Vector3(0, 0.064, -0.65), Vector3(90, 0, 0), GM2)
 	b.box("parker", Vector3(0.03, 0.03, 0.06), Vector3(0, 0.064, -0.8), Vector3.ZERO, BLK)
@@ -337,14 +367,16 @@ static func _sentry(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> 
 	mk["sight_z"] = -0.1
 
 
-static func _thresher(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
+static func _thresher(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
 	b.box("parker", Vector3(0.07, 0.1, 0.36), Vector3(0, 0.06, -0.06), Vector3.ZERO, GM2)
 	b.box("parker", Vector3(0.074, 0.03, 0.2), Vector3(0, 0.125, -0.04), Vector3.ZERO, GM)
 	b.cyl("parker", 0.016, 0.075, Vector3(0, 0.126, -0.04), Vector3(0, 0, 90), GM2)
-	b.box("parker", Vector3(0.016, 0.03, 0.03), Vector3(0, 0.15, 0.04), Vector3.ZERO, GM2)
-	b.capsule("parker", 0.009, 0.13, Vector3(0, 0.178, -0.24), Vector3(90, 0, 0), BLK)
-	b.box("parker", Vector3(0.012, 0.04, 0.012), Vector3(0, 0.15, -0.18), Vector3.ZERO, BLK)
-	b.box("parker", Vector3(0.012, 0.04, 0.012), Vector3(0, 0.15, -0.3), Vector3.ZERO, BLK)
+	b.capsule("parker", 0.009, 0.13, Vector3(-0.05, 0.135, -0.24), Vector3(90, 0, 0), BLK)
+	b.box("parker", Vector3(0.012, 0.025, 0.012), Vector3(-0.045, 0.122, -0.18), Vector3.ZERO, BLK)
+	b.box("parker", Vector3(0.012, 0.025, 0.012), Vector3(-0.045, 0.122, -0.3), Vector3.ZERO, BLK)
+	_red_dot(b, 0.178, 0.03, -0.04, 0.14, 0.02)
+	var sl := _slide(extra, Vector3(0.042, 0.07, -0.1))
+	sl.capsule("parker", 0.007, 0.04, Vector3.ZERO, Vector3(0, 0, 90), BLK)
 	_eject_port(b, 0.036, 0.05, -0.04, 0.09)
 	b.cyl("parker", 0.013, 0.52, Vector3(0, 0.065, -0.57), Vector3(90, 0, 0), GM2)
 	b.cyl("parker", 0.024, 0.3, Vector3(0, 0.075, -0.42), Vector3(90, 0, 0), GM, -1.0, 14)
@@ -369,12 +401,13 @@ static func _thresher(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -
 	mk["mag"] = Vector3(-0.02, -0.005, -0.1)
 	mk["muzzle"] = Vector3(0, 0.065, -0.88)
 	mk["left"] = Vector3(0, 0.0, -0.33)
-	mk["sight_y"] = 0.165
-	mk["sight_z"] = 0.04
+	mk["sight_y"] = 0.178
+	mk["sight_z"] = 0.03
+	mk["eye"] = 0.22
 
 
 # --- SMGs / pistols --------------------------------------------------------------
-static func _vespa(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
+static func _vespa(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
 	var c := Color(0.13, 0.13, 0.135)
 	b.box("parker", Vector3(0.046, 0.05, 0.28), Vector3(0, 0.058, -0.07), Vector3.ZERO, c)
 	b.cyl("parker", 0.026, 0.28, Vector3(0, 0.07, -0.07), Vector3(90, 0, 0), c, -1.0, 16)
@@ -382,11 +415,14 @@ static func _vespa(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> v
 	_round_guard(b, "polymer", 0.031, 0.14, Vector3(0, 0.048, -0.275), BLK, 4)
 	b.cyl("parker", 0.009, 0.1, Vector3(0, 0.068, -0.39), Vector3(90, 0, 0), GM2)
 	b.cyl("parker", 0.012, 0.03, Vector3(0, 0.068, -0.44), Vector3(90, 0, 0), BLK)
-	b.torus("parker", 0.012, 0.018, Vector3(0, 0.112, -0.34), Vector3(90, 0, 0), c)
-	b.box("parker", Vector3(0.012, 0.03, 0.012), Vector3(0, 0.098, -0.34), Vector3.ZERO, c)
-	b.cyl("parker", 0.014, 0.02, Vector3(0, 0.106, 0.02), Vector3(0, 0, 90), c)
+	b.torus("parker", 0.0135, 0.0175, Vector3(0, 0.112, -0.34), Vector3(90, 0, 0), c)
+	b.box("parker", Vector3(0.012, 0.012, 0.012), Vector3(0, 0.094, -0.34), Vector3.ZERO, c)
+	b.box("parker", Vector3(0.004, 0.012, 0.004), Vector3(0, 0.106, -0.34), Vector3.ZERO, c)
+	b.box("parker", Vector3(0.03, 0.014, 0.022), Vector3(0, 0.097, 0.02), Vector3.ZERO, c)
+	b.torus("parker", 0.0035, 0.0075, Vector3(0, 0.112, 0.02), Vector3(90, 0, 0), c)
 	b.cyl("parker", 0.008, 0.2, Vector3(-0.02, 0.098, -0.18), Vector3(90, 0, 0), c)
-	b.capsule("steel", 0.006, 0.03, Vector3(-0.034, 0.098, -0.26), Vector3(0, 0, 90), STEEL.darkened(0.3))
+	var sl := _slide(extra, Vector3(-0.034, 0.098, -0.26))
+	sl.capsule("steel", 0.006, 0.03, Vector3.ZERO, Vector3(0, 0, 90), STEEL.darkened(0.3))
 	_grip(b, Vector3(0, 0.002, 0.012), 15.0, BLK)
 	_trigger_group(b, 0.0, c)
 	b.cyl("steel", 0.005, 0.2, Vector3(0.018, 0.05, 0.17), Vector3(90, 0, 0), STEEL.darkened(0.2))
@@ -400,10 +436,11 @@ static func _vespa(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> v
 	mk["muzzle"] = Vector3(0, 0.068, -0.455)
 	mk["left"] = Vector3(0, 0.03, -0.27)
 	mk["sight_y"] = 0.112
-	mk["sight_z"] = -0.34
+	mk["sight_z"] = 0.02
+	mk["eye"] = 0.15
 
 
-static func _mako(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
+static func _mako(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
 	b.box("polymer", Vector3(0.055, 0.085, 0.36), Vector3(0, 0.05, -0.08), Vector3.ZERO, BLK)
 	b.cyl("polymer", 0.0275, 0.36, Vector3(0, 0.01, -0.08), Vector3(90, 0, 0), BLK, -1.0, 14, Vector3(1, 1, 0.7))
 	for i in 4:
@@ -417,57 +454,71 @@ static func _mako(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> vo
 	b.capsule("polymer", 0.01, 0.2, Vector3(0, 0.075, 0.2), Vector3(90, 0, 0), BLK, Vector3(1.5, 1, 1))
 	b.capsule("polymer", 0.01, 0.2, Vector3(0, 0.0, 0.2), Vector3(90, 0, 0), BLK, Vector3(1.5, 1, 1))
 	b.capsule("rubber", 0.012, 0.1, Vector3(0, 0.038, 0.3), Vector3.ZERO, BLK, Vector3(1.6, 1, 1))
-	b.box("parker", Vector3(0.026, 0.012, 0.045), Vector3(0, 0.107, -0.1), Vector3.ZERO, BLK)
-	b.box("parker", Vector3(0.03, 0.03, 0.006), Vector3(0, 0.128, -0.118), Vector3.ZERO, BLK)
-	b.sphere("lens_red", 0.002, Vector3(0, 0.128, -0.12), Color.WHITE)
+	b.box("parker", Vector3(0.024, 0.012, 0.02), Vector3(0, 0.111, 0.04), Vector3.ZERO, BLK)
+	b.torus("parker", 0.004, 0.008, Vector3(0, 0.124, 0.04), Vector3(90, 0, 0), BLK)
+	for sx in [-1.0, 1.0]:
+		b.box("parker", Vector3(0.004, 0.024, 0.02), Vector3(sx * 0.012, 0.124, 0.04), Vector3.ZERO, BLK)
+		b.box("parker", Vector3(0.004, 0.02, 0.012), Vector3(sx * 0.009, 0.122, -0.22), Vector3.ZERO, BLK)
+	b.box("parker", Vector3(0.016, 0.012, 0.016), Vector3(0, 0.111, -0.22), Vector3.ZERO, BLK)
+	b.box("parker", Vector3(0.004, 0.012, 0.004), Vector3(0, 0.118, -0.22), Vector3.ZERO, BLK)
+	var sl := _slide(extra, Vector3(-0.031, 0.075, -0.15))
+	sl.capsule("parker", 0.006, 0.03, Vector3.ZERO, Vector3(0, 0, 90), BLK)
 	mb.box("polymer", Vector3(0.028, 0.13, 0.05), Vector3(0, -0.065, 0), Vector3(4, 0, 0), BLK)
 	for i in 3:
 		mb.box("polymer", Vector3(0.0285, 0.003, 0.04), Vector3(0, -0.03 - i * 0.03, 0.0), Vector3(4, 0, 0), Color(0.03, 0.03, 0.03))
 	mk["mag"] = Vector3(0, 0.0, -0.12)
 	mk["muzzle"] = Vector3(0, 0.066, -0.378)
 	mk["left"] = Vector3(0, 0.02, -0.22)
-	mk["sight_y"] = 0.128
-	mk["sight_z"] = -0.11
+	mk["sight_y"] = 0.124
+	mk["sight_z"] = 0.04
+	mk["eye"] = 0.15
 
 
-static func _raptor(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
-	b.box("parker", Vector3(0.029, 0.032, 0.19), Vector3(0, 0.07, -0.06), Vector3.ZERO, Color(0.1, 0.1, 0.11))
+static func _raptor(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
+	var sl := _slide(extra, Vector3(0, 0.07, -0.06))
+	sl.box("parker", Vector3(0.029, 0.032, 0.19), Vector3.ZERO, Vector3.ZERO, Color(0.1, 0.1, 0.11))
 	for i in 5:
-		b.box("parker", Vector3(0.031, 0.024, 0.003), Vector3(0, 0.07, 0.012 + i * 0.007), Vector3.ZERO, BLK)
-	_eject_port(b, 0.0155, 0.078, -0.05, 0.04)
+		sl.box("parker", Vector3(0.031, 0.024, 0.003), Vector3(0, 0, 0.072 + i * 0.007), Vector3.ZERO, BLK)
+	_eject_port(sl, 0.0155, 0.008, 0.01, 0.04)
+	for sx in [-1.0, 1.0]:
+		sl.box("parker", Vector3(0.004, 0.009, 0.006), Vector3(sx * 0.0055, 0.0205, 0.085), Vector3.ZERO, BLK)
+	sl.box("parker", Vector3(0.004, 0.01, 0.005), Vector3(0, 0.02, -0.085), Vector3.ZERO, BLK)
 	b.box("polymer", Vector3(0.027, 0.026, 0.16), Vector3(0, 0.044, -0.055), Vector3.ZERO, BLK)
 	b.box("parker", Vector3(0.03, 0.03, 0.035), Vector3(0, 0.068, -0.17), Vector3.ZERO, GM)
 	b.box("polymer", Vector3(0.024, 0.006, 0.03), Vector3(0, 0.084, -0.17), Vector3.ZERO, Color(0.02, 0.02, 0.02))
 	_grip(b, Vector3(0, 0.03, 0.008), 15.0, BLK, 0.1)
-	b.box("parker", Vector3(0.005, 0.008, 0.005), Vector3(0, 0.09, -0.15), Vector3.ZERO, BLK)
-	b.box("parker", Vector3(0.016, 0.008, 0.006), Vector3(0, 0.09, 0.025), Vector3.ZERO, BLK)
 	_trigger_group(b, 0.0, BLK)
 	mb.box("parker", Vector3(0.024, 0.17, 0.034), Vector3(0, -0.06, 0), Vector3(-15, 0, 0), GM2)
 	mb.box("polymer", Vector3(0.028, 0.012, 0.04), Vector3(0, -0.142, 0.022), Vector3(-15, 0, 0), BLK)
 	mk["mag"] = Vector3(0, -0.01, 0.015)
 	mk["muzzle"] = Vector3(0, 0.068, -0.19)
 	mk["left"] = Vector3(0.0, -0.035, 0.0)
-	mk["sight_y"] = 0.094
-	mk["sight_z"] = -0.1
+	mk["sight_y"] = 0.095
+	mk["sight_z"] = 0.025
+	mk["eye"] = 0.44
 
 
-static func _hawk(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary) -> void:
-	b.box("steel", Vector3(0.036, 0.045, 0.27), Vector3(0, 0.075, -0.075), Vector3.ZERO, STEEL)
-	b.capsule("steel", 0.012, 0.25, Vector3(0, 0.1, -0.08), Vector3(90, 0, 0), STEEL.darkened(0.15), Vector3(1.4, 1, 0.6))
+static func _hawk(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
+	var sl := _slide(extra, Vector3(0, 0.075, -0.075))
+	sl.box("steel", Vector3(0.036, 0.045, 0.27), Vector3.ZERO, Vector3.ZERO, STEEL)
+	sl.capsule("steel", 0.012, 0.25, Vector3(0, 0.025, -0.005), Vector3(90, 0, 0), STEEL.darkened(0.15), Vector3(1.4, 1, 0.6))
 	for i in 3:
-		b.box("parker", Vector3(0.038, 0.012, 0.012), Vector3(0, 0.075, -0.2 + i * 0.02), Vector3.ZERO, GM2)
-	_eject_port(b, 0.018, 0.08, -0.03, 0.045)
+		sl.box("parker", Vector3(0.038, 0.012, 0.012), Vector3(0, 0, -0.125 + i * 0.02), Vector3.ZERO, GM2)
+	_eject_port(sl, 0.018, 0.005, 0.045, 0.045)
+	sl.box("parker", Vector3(0.006, 0.014, 0.008), Vector3(0, 0.036, -0.125), Vector3.ZERO, GM2)
+	for sx in [-1.0, 1.0]:
+		sl.box("parker", Vector3(0.005, 0.014, 0.008), Vector3(sx * 0.006, 0.036, 0.12), Vector3.ZERO, GM2)
 	b.box("parker", Vector3(0.033, 0.03, 0.2), Vector3(0, 0.04, -0.06), Vector3.ZERO, GM)
 	_grip(b, Vector3(0, 0.03, 0.012), 12.0, BLK, 0.11)
 	b.capsule("parker", 0.006, 0.03, Vector3(0, 0.09, 0.065), Vector3(-30, 0, 0), GM2)
-	b.box("parker", Vector3(0.006, 0.012, 0.008), Vector3(0, 0.112, -0.2), Vector3.ZERO, GM2)
 	_trigger_group(b, 0.0, GM)
 	mb.box("parker", Vector3(0.026, 0.09, 0.034), Vector3(0, -0.045, 0), Vector3(-12, 0, 0), GM2)
 	mk["mag"] = Vector3(0, -0.005, 0.02)
 	mk["muzzle"] = Vector3(0, 0.08, -0.21)
 	mk["left"] = Vector3(0.0, -0.035, 0.0)
-	mk["sight_y"] = 0.115
-	mk["sight_z"] = -0.18
+	mk["sight_y"] = 0.118
+	mk["sight_z"] = 0.045
+	mk["eye"] = 0.45
 
 
 static func _breacher(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, extra: Dictionary) -> void:
@@ -480,7 +531,10 @@ static func _breacher(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, e
 	b.cyl("parker", 0.012, 0.5, Vector3(0, 0.046, -0.39), Vector3(90, 0, 0), GM)
 	b.cyl("parker", 0.0125, 0.02, Vector3(0, 0.046, -0.645), Vector3(90, 0, 0), BLK)
 	b.box("parker", Vector3(0.026, 0.05, 0.02), Vector3(0, 0.062, -0.62), Vector3.ZERO, GM)
-	b.sphere("brass", 0.004, Vector3(0, 0.094, -0.72), BRASS)
+	b.box("parker", Vector3(0.006, 0.008, 0.006), Vector3(0, 0.091, -0.72), Vector3.ZERO, GM2)
+	b.sphere("brass", 0.004, Vector3(0, 0.096, -0.72), BRASS)
+	for sx in [-1.0, 1.0]:
+		b.box("parker", Vector3(0.004, 0.012, 0.01), Vector3(sx * 0.005, 0.094, 0.06), Vector3.ZERO, GM2)
 	b.box("polymer", Vector3(0.038, 0.075, 0.3), Vector3(0, 0.022, 0.23), Vector3(-6, 0, 0), BLK)
 	b.cyl("polymer", 0.02, 0.3, Vector3(0, -0.014, 0.23), Vector3(84, 0, 0), BLK, 0.028, 12, Vector3(0.95, 1, 1))
 	b.box("rubber", Vector3(0.044, 0.12, 0.025), Vector3(0, 0.008, 0.385), Vector3(-6, 0, 0), BLK)
@@ -500,8 +554,9 @@ static func _breacher(b: VisUtil.Builder, mb: VisUtil.Builder, mk: Dictionary, e
 	mk["mag"] = Vector3(0, 0.0, -0.05)
 	mk["muzzle"] = Vector3(0, 0.078, -0.745)
 	mk["left"] = Vector3(0, 0.02, -0.37)
-	mk["sight_y"] = 0.096
-	mk["sight_z"] = -0.72
+	mk["sight_y"] = 0.1
+	mk["sight_z"] = 0.06
+	mk["eye"] = 0.17
 
 
 # --- Melee / throwables / objective ---------------------------------------------
@@ -611,12 +666,18 @@ static func _polyhaven_pistol(root: Node3D) -> Node3D:
 	var meshes := _gltf_meshes("res://assets/models/service_pistol/service_pistol_1k.gltf")
 	var grip := Vector3(-0.012, 0.005, 0)
 	var holder := _ph_holder(root, "Model", grip)
-	var off := Vector3.ZERO
-	for n in ["service_pistol_pistol_a", "service_pistol_slide_a", "service_pistol_hammer_a", "service_pistol_trigger_a"]:
+	for n in ["service_pistol_pistol_a", "service_pistol_hammer_a", "service_pistol_trigger_a"]:
 		if meshes.has(n):
-			var mi: MeshInstance3D = meshes[n]
-			mi.position += off
-			holder.add_child(mi)
+			holder.add_child(meshes[n])
+	if meshes.has("service_pistol_slide_a"):
+		var sm: MeshInstance3D = meshes["service_pistol_slide_a"]
+		var slide := Node3D.new()
+		slide.name = "Slide"
+		slide.position = _ph_point(sm.position, grip)
+		root.add_child(slide)
+		var sh := _ph_holder(slide, "SlideModel", Vector3.ZERO)
+		sm.position = Vector3.ZERO
+		sh.add_child(sm)
 	var mag := Node3D.new()
 	mag.name = "Mag"
 	root.add_child(mag)
@@ -632,9 +693,10 @@ static func _polyhaven_pistol(root: Node3D) -> Node3D:
 			m.free()
 	_marker(root, "Muzzle", _ph_point(Vector3(0.176, 0.062, 0), grip))
 	_marker(root, "LeftHand", Vector3(0.0, -0.035, 0.0))
-	_marker(root, "Sight", _ph_point(Vector3(0.05, 0.08, 0), grip))
+	_marker(root, "Sight", _ph_point(Vector3(-0.03, 0.078, 0), grip))
 	root.set_meta("hold", "pistol")
-	root.set_meta("sight_y", 0.08 - grip.y)
+	root.set_meta("sight_y", 0.078 - grip.y)
+	root.set_meta("eye_relief", 0.44)
 	return root
 
 
@@ -666,4 +728,5 @@ static func _polyhaven_rifle(root: Node3D) -> Node3D:
 	_marker(root, "Sight", _ph_point(Vector3(-0.2, 0.072, 0), grip))
 	root.set_meta("hold", "rifle")
 	root.set_meta("sight_y", 0.072 - grip.y)
+	root.set_meta("eye_relief", 0.12)
 	return root
