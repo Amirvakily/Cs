@@ -26,6 +26,8 @@ PLAYING ONLINE
   Join: Server Browser lists servers on your network automatically. For internet servers,
   type IP:port and press Add Favorite (or Direct Connect).
   Host from the game: Host Online. Your friends join your IP on port 27777.
+  The first time you host or run a server, Windows Firewall asks for network access:
+  click Allow (tick "Private" and "Public" if friends join over the internet).
 
 DEDICATED SERVER (run a server others can join)
   1. Edit server.cfg (name, port, password, map rotation, bots, difficulty...).
