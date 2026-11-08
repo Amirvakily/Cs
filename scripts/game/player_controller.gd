@@ -121,8 +121,11 @@ func _sens() -> float:
 	return float(Cfg.settings["sensitivity"]) * 0.022 * (cam.fov / base)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+func _input(event: InputEvent) -> void:
+	# Read mouse input before the GUI so HUD widgets under the (captured) cursor can't eat it.
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or _menu_open():
+		return
+	if event is InputEventMouseMotion:
 		var rel: Vector2 = event.relative
 		var k := deg_to_rad(_sens())
 		look_yaw -= rel.x * k
