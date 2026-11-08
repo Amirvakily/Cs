@@ -829,9 +829,9 @@ func _build_environment() -> void:
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	e.ambient_light_sky_contribution = 0.5 if night else 0.45
+	e.ambient_light_sky_contribution = 0.5 if night else 0.3
 	e.ambient_light_color = Color(0.26, 0.28, 0.4) if night else Color(0.66, 0.55, 0.43)
-	e.ambient_light_energy = 2.0 if night else 1.35
+	e.ambient_light_energy = 2.0 if night else 1.6
 	e.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
 	e.tonemap_exposure = 1.4 if night else 1.0
