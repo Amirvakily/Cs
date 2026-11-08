@@ -170,6 +170,7 @@ var settings := {
 	"difficulty": 1,
 	"rounds": 16,
 	"friendly_fire": false,
+	"master_servers": "",
 }
 
 const CROSSHAIR_COLORS := [Color(0.3, 1.0, 0.35), Color(1, 1, 1), Color(0.2, 0.9, 1.0), Color(1.0, 0.9, 0.2), Color(1.0, 0.3, 0.8)]

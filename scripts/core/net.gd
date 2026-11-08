@@ -10,6 +10,9 @@ signal peer_gone(id: int)
 signal upnp_done(ok: bool, external_ip: String)
 
 var online := false
+var password := "" # server: required join password ("" = open)
+var join_password := "" # client: password sent when joining
+var server_name := ""
 var peers := {} # id -> {"name": String, "loaded": bool}
 var match_config := {}
 var _upnp_thread: Thread
@@ -42,10 +45,10 @@ func start_offline(config: Dictionary) -> void:
 	online = false
 
 
-func host(port: int, config: Dictionary, use_upnp := true) -> Error:
+func host(port: int, config: Dictionary, use_upnp := true, max_clients := Cfg.MAX_PLAYERS) -> Error:
 	stop()
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_server(port, Cfg.MAX_PLAYERS)
+	var err := peer.create_server(port, max_clients)
 	if err != OK:
 		return err
 	multiplayer.multiplayer_peer = peer
@@ -59,8 +62,9 @@ func host(port: int, config: Dictionary, use_upnp := true) -> Error:
 	return OK
 
 
-func join(ip: String, port: int) -> Error:
+func join(ip: String, port: int, pw := "") -> Error:
 	stop()
+	join_password = pw
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_client(ip, port)
 	if err != OK:
@@ -99,6 +103,8 @@ func loaded_peers() -> Array:
 func peer_name(id: int) -> String:
 	if peers.has(id):
 		return peers[id]["name"]
+	if id == 1:
+		return String(Cfg.settings["player_name"])
 	return "Player%d" % id
 
 
@@ -137,12 +143,19 @@ func _on_peer_disconnected(id: int) -> void:
 
 
 func _on_connected() -> void:
-	_sv_hello.rpc_id(1, String(Cfg.settings["player_name"]), Cfg.VERSION)
+	_sv_hello.rpc_id(1, String(Cfg.settings["player_name"]), Cfg.VERSION, join_password)
 
 
 func _on_connection_failed() -> void:
 	stop()
 	join_failed.emit("Could not connect to server.")
+
+
+func kick(id: int, reason: String) -> void:
+	if not multiplayer.is_server() or not peers.has(id):
+		return
+	_cl_kick.rpc_id(id, reason)
+	get_tree().create_timer(0.3).timeout.connect(func(): _drop_peer(id))
 
 
 func _on_server_disconnected() -> void:
@@ -153,10 +166,18 @@ func _on_server_disconnected() -> void:
 
 # --- Handshake RPCs -------------------------------------------------------------
 @rpc("any_peer", "call_remote", "reliable")
-func _sv_hello(pname: String, version: String) -> void:
+func _sv_hello(pname: String, version: String, pw := "") -> void:
 	if not multiplayer.is_server():
 		return
 	var id := multiplayer.get_remote_sender_id()
+	if password != "" and pw != password:
+		_cl_kick.rpc_id(id, "Wrong server password.")
+		get_tree().create_timer(0.5).timeout.connect(func(): _drop_peer(id))
+		return
+	if loaded_peers().size() + 1 >= Cfg.MAX_PLAYERS + 1:
+		_cl_kick.rpc_id(id, "Server is full.")
+		get_tree().create_timer(0.5).timeout.connect(func(): _drop_peer(id))
+		return
 	if version != Cfg.VERSION:
 		_cl_kick.rpc_id(id, "Version mismatch (host %s, you %s)." % [Cfg.VERSION, version])
 		get_tree().create_timer(0.5).timeout.connect(func(): _drop_peer(id))
