@@ -274,14 +274,16 @@ func _cover_cmd(cmd: Dictionary, mv: Vector2, delta: float) -> void:
 		desired = edge_target * 3.0 * (_peek - 0.5)
 	# Hug the wall.
 	desired += -cover_normal * 0.5
-	var fwd := Vector3(-sin(look_yaw), 0, -cos(look_yaw))
-	cmd["move"] = Vector2(desired.dot(cam_right), desired.dot(fwd)).limit_length(1.0)
-	cmd["walk"] = true
-	cmd["crouch"] = cover_low and _peek < 0.5
-	# Without peeking you can only blind-fire; aim direction follows the camera ray.
+	# Aim follows the camera ray (blind fire unless peeking). The soldier interprets "move"
+	# relative to the command yaw, so decompose the desired motion in that frame.
 	var aim := _camera_aim()
 	cmd["yaw"] = aim.x
 	cmd["pitch"] = aim.y
+	var m_right := Vector3(cos(aim.x), 0, -sin(aim.x))
+	var m_fwd := Vector3(-sin(aim.x), 0, -cos(aim.x))
+	cmd["move"] = Vector2(desired.dot(m_right), desired.dot(m_fwd)).limit_length(1.0)
+	cmd["walk"] = true
+	cmd["crouch"] = cover_low and _peek < 0.5
 
 
 func _camera_aim() -> Vector2:

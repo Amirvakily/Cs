@@ -698,4 +698,21 @@ func _actiontest_tick() -> void:
 			if _at_timer > 4.5:
 				print("ACTION after plant: bomb=%s log=%s" % [str(g.rs["bomb"]["state"]), str(_at_log)])
 				_at_step = 7
+				_at_timer = 0.0
+		7:
+			# Cover: stand in front of a wall facing it and take cover.
+			if _at_timer < 0.02:
+				var c := g.world.cell_to_world(Vector2i(16, 13)) # open mid area; wall is 3 cells west at col 12
+				s.force_position(Vector3(27.0, 0.0, c.z), PI * 0.5)
+				g.controller.look_yaw = PI * 0.5 # face -X (west)
+				g.controller.look_pitch = 0.0
+			if _at_timer > 0.3 and _at_timer < 0.32:
+				g.controller._try_enter_cover()
+				print("ACTION cover: in_cover=%s low=%s normal=%s pos=%s" % [g.controller.in_cover, g.controller.cover_low, str(g.controller.cover_normal), str(s.global_position.snapped(Vector3(0.01, 0.01, 0.01)))])
+			if _at_timer > 0.4 and _at_timer < 1.6:
+				Input.action_press("move_right")
+			else:
+				Input.action_release("move_right")
+			if _at_timer > 1.7:
+				print("ACTION cover after sliding: phase=%s in_cover=%s pos=%s cam_dist=%.2f first_person=%s" % [g.rs["phase"], g.controller.in_cover, str(s.global_position.snapped(Vector3(0.01, 0.01, 0.01))), g.controller.cam.global_position.distance_to(s.eye_pos()), g.controller.first_person()])
 				get_tree().quit()
