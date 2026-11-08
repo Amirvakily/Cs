@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c652erw23lcy"
+uid="uid://sdgmxt3djgsd"
 path.s3tc="res://.godot/imported/utility_box_01_diff_1k.jpg-bab21b0bbecb47e411c5ca589c49967d.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

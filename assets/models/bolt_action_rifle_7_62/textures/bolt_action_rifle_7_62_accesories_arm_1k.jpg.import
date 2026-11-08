@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bk4fiic70yvux"
+uid="uid://2u65153csw5f"
 path.s3tc="res://.godot/imported/bolt_action_rifle_7_62_accesories_arm_1k.jpg-e1abfb4457188b3a378e586572868dc2.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

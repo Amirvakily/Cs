@@ -26,10 +26,10 @@ TEXTURES = [
 ]
 HDRIS = ["wasteland_clouds_puresky", "kloppenheim_07_puresky"]
 MODELS = [
-    "old_military_crate", "wooden_crate_02", "Barrel_01", "barrel_03", "concrete_road_barrier",
-    "covered_car", "street_lamp_01", "fire_hydrant", "metal_trash_can", "utility_box_01",
+    "wooden_crate_02", "Barrel_01", "barrel_03", "concrete_road_barrier",
+    "covered_car", "street_lamp_01", "metal_trash_can", "utility_box_01",
     "exterior_aircon_unit", "service_pistol", "bolt_action_rifle_7_62", "ammo_box",
-    "metal_jerrycan", "old_tyre", "cardboard_box_01", "portable_generator", "security_light",
+    "metal_jerrycan", "cardboard_box_01", "portable_generator", "security_light",
     "hanging_industrial_lamp", "propane_tank",
 ]
 
@@ -55,7 +55,7 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit={size_limit}
 detect_3d/compress_to=0
 """
 
@@ -74,14 +74,15 @@ def save(url: str, path: str) -> None:
     print(f"  {os.path.relpath(path, ROOT)} ({len(data) // 1024} KB)")
 
 
-def write_import(path: str, normal: bool, force: bool = False) -> None:
+def write_import(path: str, normal: bool, force: bool = False, size_limit: int = 0) -> None:
     imp = path + ".import"
     if os.path.exists(imp) and not force:
         with open(imp) as f:
-            if "compress/mode=2" in f.read():
+            text = f.read()
+            if "compress/mode=2" in text and f"process/size_limit={size_limit}" in text:
                 return
     with open(imp, "w") as f:
-        f.write(TEX_IMPORT.format(normal=1 if normal else 0))
+        f.write(TEX_IMPORT.format(normal=1 if normal else 0, size_limit=size_limit))
 
 
 def fetch_texture(name: str) -> None:
@@ -92,7 +93,8 @@ def fetch_texture(name: str) -> None:
             continue
         path = os.path.join(ROOT, "textures", name, f"{name}_{suffix}_1k.jpg")
         save(files[key]["1k"]["jpg"]["url"], path)
-        write_import(path, suffix == "nor_gl")
+        # Roughness/AO detail is low-frequency: 512 px keeps the download small.
+        write_import(path, suffix == "nor_gl", size_limit=512 if suffix == "arm" else 0)
 
 
 def fetch_hdri(name: str) -> None:
@@ -112,7 +114,8 @@ def fetch_model(name: str) -> None:
         save(info["url"], path)
         if rel.endswith((".jpg", ".png")):
             # Godot only auto-detects 3D usage in the editor UI; force VRAM + mipmaps.
-            write_import(path, "nor_gl" in rel)
+            # Props are small on screen: cap their textures at 512 px to keep the download small.
+            write_import(path, "nor_gl" in rel, size_limit=512)
 
 
 def main() -> int:

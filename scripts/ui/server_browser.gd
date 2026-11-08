@@ -8,7 +8,8 @@ signal status_requested(text: String)
 
 const FILTERS := [["all", "ALL"], ["lan", "LAN"], ["master", "INTERNET"], ["favorite", "FAVORITES"]]
 const MAP_NAMES := {"outpost": "Outpost", "neon_row": "Neon Row"}
-const COLS := [["SERVER", 0], ["MAP", 120], ["MODE", 150], ["PLAYERS", 120], ["PING", 64], ["", 64]]
+const COLS := [["SERVER", 0], ["MAP", 96], ["MODE", 96], ["PLAYERS", 92], ["PING", 44], ["", 56]]
+const MODE_SHORT := {"defusal": "Demolition", "tdm": "TDM", "hunt": "Squad Hunt"}
 
 var _filter := "all"
 var _filter_buttons := {}
@@ -259,7 +260,7 @@ func _row(s: Dictionary) -> Button:
 	var cells := [
 		nm,
 		String(MAP_NAMES.get(String(s.get("map", "")), String(s.get("map", "?")).capitalize())),
-		String(Cfg.MODE_NAMES.get(String(s.get("mode", "")), String(s.get("mode", "?")))),
+		String(MODE_SHORT.get(String(s.get("mode", "")), String(s.get("mode", "?")))),
 		_players_text(s),
 		_ping_text(s),
 	]
@@ -273,7 +274,9 @@ func _row(s: Dictionary) -> Button:
 		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_size_cell(l, int(COLS[i][1]))
 		h.add_child(l)
-	h.add_child(_source_tag(String(s.get("source", ""))))
+	var tag := _source_tag(String(s.get("source", "")))
+	tag.custom_minimum_size = Vector2(int(COLS[5][1]), 0)
+	h.add_child(tag)
 	b.gui_input.connect(func(ev: InputEvent):
 		if ev is InputEventMouseButton and ev.pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 			_selected = s
@@ -316,7 +319,6 @@ func _source_tag(src: String) -> Control:
 	p.add_theme_stylebox_override("panel", st)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	p.custom_minimum_size = Vector2(56, 0)
 	var l := UiTheme.label(txt, 12, col, 700, 0)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	p.add_child(l)

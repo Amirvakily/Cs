@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://demfxenj501a3"
+uid="uid://cjyi54deyxdje"
 path.s3tc="res://.godot/imported/wooden_crate_02_diff_1k.jpg-569e4a07323d9f0d15c0f1fcdede7a2e.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

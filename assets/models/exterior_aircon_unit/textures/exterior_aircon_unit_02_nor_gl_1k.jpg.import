@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7ogh8b85pfho"
+uid="uid://dcxwp66tje4gk"
 path.s3tc="res://.godot/imported/exterior_aircon_unit_02_nor_gl_1k.jpg-37f6a6d1d2c8137c337863b914501b59.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dh2kj0unh7uk6"
+uid="uid://byofqel1d7rl4"
 path.s3tc="res://.godot/imported/concrete_block_wall_arm_1k.jpg-623acd3cfb185851377f33e5ff575315.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

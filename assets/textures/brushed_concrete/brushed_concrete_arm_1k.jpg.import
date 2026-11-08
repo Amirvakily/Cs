@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ckrrmwy4sq8cl"
+uid="uid://bm8f0eybky8ci"
 path.s3tc="res://.godot/imported/brushed_concrete_arm_1k.jpg-51d7b0516e13dc0df1e7911eb9664b1f.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

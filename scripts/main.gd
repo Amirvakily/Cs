@@ -47,9 +47,18 @@ func _boot() -> void:
 	Net.joined.connect(_on_joined)
 	Net.join_failed.connect(_on_join_failed)
 	Net.disconnected.connect(_on_disconnected)
+	if "--testclient" in args:
+		_run_testclient(args)
+		return
 	browser = ServerList.new()
 	browser.name = "ServerList"
 	add_child(browser)
+	if "--querytest" in args:
+		_run_querytest(args)
+		return
+	if "--shots" in args:
+		_run_shots(args)
+		return
 	_show_menu()
 
 
@@ -450,3 +459,146 @@ func _run_autotest(args: PackedStringArray) -> void:
 
 func _autotest_report() -> void:
 	print("AUTOTEST done: kills=%d events=%s score=%s phase=%s round=%s" % [_at_kills, str(_at_events), str(game.rs["score"]), game.rs["phase"], str(game.rs["round"])])
+
+
+# ---------------------------------------------------------------------------
+# Test client: joins a server, auto-picks a team, walks and shoots, logs what happens.
+#   --testclient <host> <port> <seconds>
+# ---------------------------------------------------------------------------
+var _tc_t := 0.0
+var _tc_secs := 30.0
+var _tc_joined_team := false
+var _tc_log_t := 0.0
+
+
+func _run_testclient(args: PackedStringArray) -> void:
+	var i := args.find("--testclient")
+	var host_ip := args[i + 1] if args.size() > i + 1 else "127.0.0.1"
+	var port := int(args[i + 2]) if args.size() > i + 2 else Cfg.DEFAULT_PORT
+	_tc_secs = float(args[i + 3]) if args.size() > i + 3 else 30.0
+	Cfg.settings["player_name"] = "TestClient"
+	print("TESTCLIENT connecting to %s:%d" % [host_ip, port])
+	Net.join(host_ip, port)
+	Net.disconnected.connect(func(r): print("TESTCLIENT disconnected: ", r))
+	Net.join_failed.connect(func(r): print("TESTCLIENT join failed: ", r); get_tree().quit(1))
+	set_physics_process(true)
+
+
+func _physics_process(delta: float) -> void:
+	if not OS.get_cmdline_user_args().has("--testclient") and not OS.get_cmdline_args().has("--testclient"):
+		return
+	_tc_t += delta
+	if game and is_instance_valid(game) and not _tc_joined_team and _tc_t > 3.0:
+		_tc_joined_team = true
+		game.kill_event.connect(func(k, v, w, hs, wb): print("TESTCLIENT kill %s -> %s (%s)" % [k, v, w]))
+		game.round_event.connect(func(kind, data): print("TESTCLIENT event %s" % kind))
+		game.chat_message.connect(func(n, t, text, to): print("TESTCLIENT chat %s: %s" % [n, text]))
+		game.local_damaged.connect(func(a, d): print("TESTCLIENT took %d damage" % int(a)))
+		game.hit_confirmed.connect(func(hs, k): print("TESTCLIENT hit confirmed hs=%s killed=%s" % [hs, k]))
+		print("TESTCLIENT in game: soldiers=%d map=%s" % [game.soldiers.size(), game.config.get("map")])
+		game.request_join_team(2)
+	if game and is_instance_valid(game) and game.local_soldier:
+		var ls := game.local_soldier
+		if game.hud and game.hud.get("_team") and game.hud.get("_team").visible:
+			game.hud.get("_team").visible = false
+		if ls.alive:
+			Input.action_press("move_forward")
+			if int(_tc_t * 2.0) % 3 == 0:
+				Input.action_press("fire")
+			else:
+				Input.action_release("fire")
+			if game.controller:
+				game.controller.look_yaw += delta * 0.6
+		_tc_log_t += delta
+		if _tc_log_t > 3.0:
+			_tc_log_t = 0.0
+			var others := 0
+			for s in game.soldiers.values():
+				if s != ls and s.alive:
+					others += 1
+			print("TESTCLIENT t=%.0f alive=%s hp=%d pos=%s team=%d others_alive=%d phase=%s" % [_tc_t, ls.alive, ls.health, str(ls.global_position.snapped(Vector3(0.1, 0.1, 0.1))), ls.team, others, game.rs["phase"]])
+	if _tc_t > _tc_secs:
+		print("TESTCLIENT done")
+		Net.stop()
+		get_tree().quit()
+
+
+# --querytest: refresh the server browser and print what was found.
+func _run_querytest(args: PackedStringArray) -> void:
+	var mi := args.find("--master-list")
+	if mi >= 0 and args.size() > mi + 1:
+		Cfg.settings["master_servers"] = args[mi + 1]
+	var i := args.find("--querytest")
+	if args.size() > i + 1 and not args[i + 1].begins_with("--"):
+		browser.add_favorite(args[i + 1], int(args[i + 2]) if args.size() > i + 2 else Cfg.DEFAULT_PORT)
+	browser.refresh()
+	await get_tree().create_timer(2.0).timeout
+	print("QUERYTEST found %d server(s)" % browser.servers.size())
+	for e in browser.servers:
+		print("  ", e)
+	get_tree().quit()
+
+
+# ---------------------------------------------------------------------------
+# --shots <map> <mode> <out_dir> [quality]: in-game screenshots for visual checks.
+# ---------------------------------------------------------------------------
+var _sh_frames := 0
+var _sh_idx := -1
+var _sh_out := ""
+var _sh_spots := []
+
+
+func _run_shots(args: PackedStringArray) -> void:
+	var i := args.find("--shots")
+	var map := args[i + 1]
+	var mode := args[i + 2]
+	_sh_out = args[i + 3]
+	if args.size() > i + 4:
+		Cfg.settings["quality"] = int(args[i + 4])
+	start_offline({"map": map, "mode": mode, "bots": 9, "difficulty": 1})
+	set_process(true)
+	get_tree().process_frame.connect(_shots_tick)
+
+
+func _shots_tick() -> void:
+	_sh_frames += 1
+	if game == null or not is_instance_valid(game):
+		return
+	if _sh_idx == -1 and _sh_frames == 20:
+		game.request_join_team(Cfg.ATK)
+		var w := game.world
+		var c := w.bounds.get_center()
+		_sh_spots = [
+			["spawn", Vector3.INF, Vector3.INF],
+			["siteA", w.site_center("A") + Vector3(4, 0, 6), w.site_center("A")],
+			["siteB", w.site_center("B") + Vector3(-4, 0, 6), w.site_center("B")],
+			["mid", Vector3(c.x, 0, c.z + 8), Vector3(c.x, 0, c.z - 10)],
+		]
+		_sh_idx = 0
+		_sh_frames = 0
+		return
+	if _sh_idx < 0:
+		return
+	if game.hud and game.hud.get("_team") and game.hud.get("_team").visible:
+		game.hud.get("_team").visible = false
+	var s := game.local_soldier
+	if s == null:
+		return
+	if _sh_frames == 2:
+		var spot: Array = _sh_spots[_sh_idx]
+		if spot[1] != Vector3.INF:
+			var p: Vector3 = game.world.closest_nav_point(spot[1])
+			var to: Vector3 = spot[2] - p
+			var yaw := atan2(-to.x, -to.z)
+			s.force_position(p, yaw)
+			game.controller.look_yaw = yaw
+			game.controller.look_pitch = -0.05
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if _sh_frames == 45:
+		var img := get_viewport().get_texture().get_image()
+		img.save_png("%s/%s_%s.png" % [_sh_out, game.config["map"], _sh_spots[_sh_idx][0]])
+		print("SHOT ", _sh_spots[_sh_idx][0])
+		_sh_idx += 1
+		_sh_frames = 0
+		if _sh_idx >= _sh_spots.size():
+			get_tree().quit()

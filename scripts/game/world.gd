@@ -412,7 +412,7 @@ func _build_cells() -> void:
 				"s":
 					_slots(centre, r)
 				"h":
-					_decor("fire_hydrant", centre, Vector3(0.45, 0.85, 0.45), "metal")
+					_decor("metal_trash_can", centre, Vector3(0.6, 0.9, 0.6), "metal")
 				"t":
 					_decor("metal_trash_can", centre, Vector3(0.75, 1.05, 0.75), "metal")
 				"g":
@@ -422,8 +422,7 @@ func _build_cells() -> void:
 					_decor("metal_jerrycan", centre + Vector3(0.4, 0, -0.2), Vector3(0.4, 0.5, 0.25), "metal")
 					_decor("propane_tank", centre + Vector3(0.2, 0, 0.55), Vector3(0.35, 0.7, 0.35), "metal")
 				"y":
-					for i in 3:
-						_decor("old_tyre", centre + Vector3(0, i * 0.24, 0), Vector3(0.75, 0.25, 0.75), "dirt", i == 0)
+					_barrels(centre)
 				"^":
 					_ceiling_lamp(centre)
 
@@ -736,7 +735,7 @@ func _build_neons() -> void:
 			_:
 				nrm = Vector3(-1, 0, 0)
 				yaw = -PI * 0.5
-		var pos := base + nrm * (Cfg.CELL * 0.5 + 0.12) + Vector3(0, hgt, 0)
+		var pos := base + nrm * (Cfg.CELL * 0.5 + 0.3) + Vector3(0, hgt, 0)
 		var holder := Node3D.new()
 		_place(holder, pos, yaw)
 		var label := Label3D.new()
@@ -744,7 +743,7 @@ func _build_neons() -> void:
 		label.font_size = 160
 		label.pixel_size = 0.006
 		label.outline_size = 28
-		label.modulate = Color(col.r * 3.0, col.g * 3.0, col.b * 3.0)
+		label.modulate = Color(col.r * 1.7, col.g * 1.7, col.b * 1.7)
 		label.outline_modulate = Color(col.r * 0.8, col.g * 0.8, col.b * 0.8, 0.9)
 		label.shaded = false
 		label.double_sided = false
@@ -762,13 +761,14 @@ func _build_neons() -> void:
 		var fm := BoxMesh.new()
 		fm.size = Vector3(w + 0.1, 1.45, 0.04)
 		frame.mesh = fm
-		frame.material_override = Tex.flat(col, 0.4, 0.0, 3.0)
+		frame.material_override = Tex.flat(col, 0.4, 0.0, 1.6)
 		frame.position = Vector3(0, 0, -0.12)
 		holder.add_child(frame)
 		var light := OmniLight3D.new()
 		light.light_color = col
-		light.light_energy = 3.0
-		light.omni_range = 9.0
+		light.light_energy = 1.3
+		light.omni_range = 7.0
+		light.light_volumetric_fog_energy = 0.25
 		light.position = Vector3(0, 0, 1.2)
 		holder.add_child(light)
 
@@ -806,7 +806,8 @@ func _build_wall_decor() -> void:
 					_place(sl, face + nrm * 0.2 + Vector3(0, 3.4, 0), yaw)
 					var l := SpotLight3D.new()
 					l.light_color = Color(0.95, 0.95, 1.0) if theme == "night" else Color(1.0, 0.9, 0.75)
-					l.light_energy = 4.0 if theme == "night" else 1.5
+					l.light_energy = 2.2 if theme == "night" else 1.2
+					l.light_volumetric_fog_energy = 0.4
 					l.spot_range = 10.0
 					l.spot_angle = 50.0
 					l.position = face + nrm * 0.45 + Vector3(0, 3.3, 0)
@@ -822,17 +823,18 @@ func _build_environment() -> void:
 	var sky := Sky.new()
 	var pano := PanoramaSkyMaterial.new()
 	pano.panorama = load("res://assets/hdri/%s_2k.hdr" % ("kloppenheim_07_puresky" if night else "wasteland_clouds_puresky"))
-	pano.energy_multiplier = 0.55 if night else 0.75
+	pano.energy_multiplier = 0.9 if night else 1.0
 	sky.sky_material = pano
 	sky.radiance_size = Sky.RADIANCE_SIZE_256
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	e.ambient_light_sky_contribution = 1.0
-	e.ambient_light_energy = 0.55 if night else 0.55
+	e.ambient_light_sky_contribution = 0.6 if night else 0.7
+	e.ambient_light_color = Color(0.2, 0.22, 0.32) if night else Color(0.66, 0.55, 0.43)
+	e.ambient_light_energy = 1.3 if night else 1.2
 	e.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
-	e.tonemap_exposure = 1.25 if night else 0.9
+	e.tonemap_exposure = 1.4 if night else 1.2
 	e.tonemap_white = 6.0
 	e.glow_enabled = true
 	e.glow_normalized = false
@@ -856,7 +858,7 @@ func _build_environment() -> void:
 	e.sdfgi_use_occlusion = true
 	e.sdfgi_cascades = 4
 	e.sdfgi_min_cell_size = 0.25
-	e.sdfgi_energy = 0.9 if night else 1.0
+	e.sdfgi_energy = 1.1 if night else 1.4
 	e.sdfgi_bounce_feedback = 0.4
 	e.fog_enabled = true
 	e.fog_light_color = Color(0.07, 0.08, 0.12) if night else Color(0.72, 0.58, 0.45)
@@ -883,7 +885,7 @@ func _build_environment() -> void:
 	var az := deg_to_rad(35.9 if night else 115.0)
 	if not night:
 		e.sky_rotation = Vector3(0, deg_to_rad(115.0 - 35.9), 0)
-	var el := deg_to_rad(48.0 if night else 24.0)
+	var el := deg_to_rad(48.0 if night else 34.0)
 	var to_sun := Vector3(sin(az) * cos(el), sin(el), cos(az) * cos(el))
 	sun.light_color = Color(0.55, 0.65, 0.95) if night else Color(1.0, 0.76, 0.52)
 	sun.light_energy = 0.12 if night else 3.2

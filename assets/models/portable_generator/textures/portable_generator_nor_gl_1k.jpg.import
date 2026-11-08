@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cy0kmmxl0wapd"
+uid="uid://cp128tbyqqgnk"
 path.s3tc="res://.godot/imported/portable_generator_nor_gl_1k.jpg-04266472d8f0cad2497f334a8a2ec562.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dytuuft8wi8yx"
+uid="uid://c5j33sccosyut"
 path.s3tc="res://.godot/imported/metal_jerrycan_arm_1k.jpg-f3f393af6d5cd8b03d728330d369b023.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

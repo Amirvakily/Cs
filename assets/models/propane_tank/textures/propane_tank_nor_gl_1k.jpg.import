@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://skitpbhlt5ye"
+uid="uid://ba5cmf0spws3b"
 path.s3tc="res://.godot/imported/propane_tank_nor_gl_1k.jpg-a461a23140e68bc69562998ad6638f89.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

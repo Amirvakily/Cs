@@ -687,7 +687,6 @@ func _damage_feedback(victim_id: String, hp: int, armor: int, attacker_id: Strin
 			controller.on_hurt(float(amount), dir)
 	if local_soldier and attacker_id == local_soldier.id and v != local_soldier:
 		hit_confirmed.emit(zone == Combat.Z_HEAD, killed)
-		Sfx.play("headshot" if zone == Combat.Z_HEAD else "hitmark", -6.0 if zone == Combat.Z_HEAD else -10.0)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -1432,19 +1431,9 @@ func _on_round_event(kind: String, data: Dictionary) -> void:
 	if dedicated:
 		print("[round] %s %s" % [kind, str(data)])
 		return
-	var my_team := local_soldier.team if local_soldier else local_team
-	match kind:
-		"round_start":
-			Sfx.play("round_start", -4.0)
-		"round_end":
-			if my_team >= 0:
-				Sfx.play("win" if int(data.get("winner", -1)) == my_team else "lose", -4.0)
-		"bomb_planted":
-			Sfx.play("radio", -4.0)
-		"bomb_defused":
-			Sfx.play("defused", -2.0)
-		"match_over":
-			Sfx.play("win" if int(data.get("winner", -1)) == my_team else "lose", -2.0)
+	# Round sounds (start/win/lose) are played by the HUD.
+	if kind == "bomb_defused":
+		Sfx.play("defused", -2.0)
 
 
 @rpc("authority", "call_remote", "reliable")

@@ -762,8 +762,7 @@ func respawn_at(xf: Transform3D) -> void:
 	if model:
 		model.reset()
 		model.visible = true
-	if not owns(cur):
-		cur = best_weapon()
+	cur = best_weapon()
 	ensure_ammo(primary)
 	ensure_ammo(secondary)
 	if model:

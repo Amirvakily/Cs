@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dm8j5yb1im03u"
+uid="uid://d11qng5ux1odv"
 path.s3tc="res://.godot/imported/covered_car_diff_1k.jpg-8c3e3012e5f59957de1f9ff39f05b01f.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cq3pqaa854pyf"
+uid="uid://d20uyoaruur70"
 path.s3tc="res://.godot/imported/ammo_box_arm_1k.jpg-8e770ccc0aa80b94dbf1f6191c1ad81e.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

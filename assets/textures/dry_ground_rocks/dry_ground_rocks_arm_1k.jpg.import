@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hqckxybw3yt2"
+uid="uid://bmt05vdkmxuf3"
 path.s3tc="res://.godot/imported/dry_ground_rocks_arm_1k.jpg-f79f666a8ab3ee7242f81fcf03773a1b.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

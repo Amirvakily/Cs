@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://j65u7f6sgrjp"
+uid="uid://ccqlj1obd4ttl"
 path.s3tc="res://.godot/imported/barrel_03_nor_gl_1k.jpg-0e2c0947689af398d844a1036b3d0769.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
@@ -31,5 +31,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=512
 detect_3d/compress_to=0

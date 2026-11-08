@@ -50,6 +50,14 @@ func _ready() -> void:
 	_row(grid, "Fullscreen", _check("fullscreen"))
 	_row(grid, "Crosshair colour", _option("crosshair_color", CROSSHAIR_NAMES))
 	_row(grid, "Show FPS", _check("show_fps"))
+	var master_edit := LineEdit.new()
+	master_edit.text = String(Cfg.settings.get("master_servers", ""))
+	master_edit.placeholder_text = "host:27900 (optional public server list)"
+	master_edit.custom_minimum_size = Vector2(260, 0)
+	master_edit.text_changed.connect(func(t: String):
+		Cfg.settings["master_servers"] = t.strip_edges()
+		Cfg.save_settings())
+	_row(grid, "Master servers", master_edit)
 
 	var hint := UiTheme.label("Ultra enables global illumination and volumetric fog — needs a strong GPU.", 14, UiTheme.TEXT_DIM, 400, 0)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
