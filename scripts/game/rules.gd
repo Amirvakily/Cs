@@ -331,7 +331,8 @@ func _update_defusal() -> void:
 				if t >= bomb_end:
 					_explode_bomb()
 				elif def_alive == 0 and def_total > 0:
-					pass # nothing can stop it now; wait for the explosion
+					# Nobody left to defuse: the attackers win right away (the charge keeps ticking).
+					end_round(Cfg.ATK, "elimination")
 			else:
 				if atk_alive == 0 and atk_total > 0:
 					end_round(Cfg.DEF, "elimination")
@@ -340,6 +341,11 @@ func _update_defusal() -> void:
 				elif t >= phase_end:
 					end_round(Cfg.DEF, "time")
 		"post":
+			var b: Dictionary = g.rs["bomb"]
+			if b["state"] == "planted" and t >= bomb_end:
+				b["state"] = "exploded"
+				g.bomb_explode_fx(b["pos"])
+				g.explosion(b["pos"], 26.0, 520.0, planter_id, "bomb")
 			if t >= phase_end:
 				_after_round()
 		"over":
